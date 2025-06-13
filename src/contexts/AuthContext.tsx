@@ -1,7 +1,6 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import Cookies from 'js-cookie';
 
 export interface User {
   id: string;
@@ -36,6 +35,29 @@ export const useAuth = () => {
   return context;
 };
 
+// Cookie utilities using localStorage as fallback
+const cookieUtils = {
+  get: (name: string): string | null => {
+    if (typeof window === 'undefined') return null;
+    return localStorage.getItem(`cookie_${name}`);
+  },
+  set: (name: string, value: string, options?: { expires?: number }): void => {
+    if (typeof window === 'undefined') return;
+    localStorage.setItem(`cookie_${name}`, value);
+    // For expires, we could implement expiration logic, but for simplicity we'll just store it
+    if (options?.expires) {
+      const expiryDate = new Date();
+      expiryDate.setDate(expiryDate.getDate() + options.expires);
+      localStorage.setItem(`cookie_${name}_expires`, expiryDate.toISOString());
+    }
+  },
+  remove: (name: string): void => {
+    if (typeof window === 'undefined') return;
+    localStorage.removeItem(`cookie_${name}`);
+    localStorage.removeItem(`cookie_${name}_expires`);
+  }
+};
+
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
@@ -46,7 +68,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const checkAuth = async () => {
     try {
-      const token = Cookies.get('auth_token');
+      const token = cookieUtils.get('auth_token');
       if (!token) {
         setLoading(false);
         return;
@@ -71,7 +93,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         .single();
 
       if (error || !data || new Date(data.expires_at) < new Date()) {
-        Cookies.remove('auth_token');
+        cookieUtils.remove('auth_token');
         setLoading(false);
         return;
       }
@@ -79,7 +101,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setUser(data.users as User);
     } catch (error) {
       console.error('Auth check error:', error);
-      Cookies.remove('auth_token');
+      cookieUtils.remove('auth_token');
     } finally {
       setLoading(false);
     }
@@ -112,7 +134,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           expires_at: expiresAt.toISOString()
         });
 
-        Cookies.set('auth_token', sessionToken, { expires: 7 });
+        cookieUtils.set('auth_token', sessionToken, { expires: 7 });
         setUser(userData);
         return { success: true };
       }
@@ -154,14 +176,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const logout = async () => {
     try {
-      const token = Cookies.get('auth_token');
+      const token = cookieUtils.get('auth_token');
       if (token) {
         await supabase.from('user_sessions').delete().eq('session_token', token);
       }
     } catch (error) {
       console.error('Logout error:', error);
     } finally {
-      Cookies.remove('auth_token');
+      cookieUtils.remove('auth_token');
       setUser(null);
     }
   };
