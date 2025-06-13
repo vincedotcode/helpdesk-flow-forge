@@ -122,7 +122,7 @@ const UserManagement = () => {
         user_role: newUser.role,
         user_department_id: newUser.department_id || null,
         created_by_id: user?.id || ''
-      });
+      }) as { data: any; error: any };
 
       if (error) throw error;
 

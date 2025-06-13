@@ -90,7 +90,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const { data, error } = await supabase.rpc('authenticate_user', {
         user_email: email,
         user_password: password
-      });
+      }) as { data: User[] | null; error: any };
 
       if (error) {
         return { success: false, error: 'Invalid credentials' };
@@ -133,7 +133,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         user_password: userData.password,
         user_first_name: userData.first_name,
         user_last_name: userData.last_name
-      });
+      }) as { data: any; error: any };
 
       if (error) {
         return { success: false, error: error.message };
