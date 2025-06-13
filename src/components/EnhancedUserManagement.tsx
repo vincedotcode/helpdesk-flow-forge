@@ -117,6 +117,16 @@ const EnhancedUserManagement = () => {
       return;
     }
 
+    // Check if department is required for the selected role
+    if ((newUser.role === 'department_admin' || newUser.role === 'department_technician') && !newUser.department_id) {
+      toast({
+        title: "Error",
+        description: "Please select a department for this role",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -243,6 +253,8 @@ const EnhancedUserManagement = () => {
     return matchesSearch && matchesRole;
   });
 
+  const requiresDepartment = newUser.role === 'department_admin' || newUser.role === 'department_technician';
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -308,7 +320,7 @@ const EnhancedUserManagement = () => {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="role">Role</Label>
-                <Select value={newUser.role} onValueChange={(value: UserRole) => setNewUser({ ...newUser, role: value })}>
+                <Select value={newUser.role} onValueChange={(value: UserRole) => setNewUser({ ...newUser, role: value, department_id: '' })}>
                   <SelectTrigger>
                     <SelectValue placeholder="Select role" />
                   </SelectTrigger>
@@ -322,13 +334,21 @@ const EnhancedUserManagement = () => {
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="department">Department</Label>
-                <Select value={newUser.department_id} onValueChange={(value) => setNewUser({ ...newUser, department_id: value })}>
+                <Label htmlFor="department">
+                  Department {requiresDepartment && <span className="text-red-500">*</span>}
+                </Label>
+                <Select 
+                  value={newUser.department_id} 
+                  onValueChange={(value) => setNewUser({ ...newUser, department_id: value })}
+                  disabled={!requiresDepartment && newUser.role === 'end_user'}
+                >
                   <SelectTrigger>
-                    <SelectValue placeholder="Select department" />
+                    <SelectValue placeholder={requiresDepartment ? "Select department (required)" : "Select department (optional)"} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">No Department</SelectItem>
+                    {!requiresDepartment && (
+                      <SelectItem value="none">No Department</SelectItem>
+                    )}
                     {departments.map((dept) => (
                       <SelectItem key={dept.id} value={dept.id}>
                         {dept.name}
@@ -336,6 +356,11 @@ const EnhancedUserManagement = () => {
                     ))}
                   </SelectContent>
                 </Select>
+                {requiresDepartment && departments.length === 0 && (
+                  <p className="text-sm text-muted-foreground">
+                    No departments available. Please create a department first.
+                  </p>
+                )}
               </div>
             </div>
             <DialogFooter>
