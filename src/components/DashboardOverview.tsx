@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -10,7 +9,8 @@ interface DashboardStats {
   totalDepartments: number;
   openTickets: number;
   closedTickets: number;
-  pendingTickets: number;
+  inProgressTickets: number;
+  resolvedTickets: number;
 }
 
 const DashboardOverview = () => {
@@ -20,7 +20,8 @@ const DashboardOverview = () => {
     totalDepartments: 0,
     openTickets: 0,
     closedTickets: 0,
-    pendingTickets: 0,
+    inProgressTickets: 0,
+    resolvedTickets: 0,
   });
   const [loading, setLoading] = useState(true);
 
@@ -57,10 +58,15 @@ const DashboardOverview = () => {
         .select('*', { count: 'exact', head: true })
         .eq('status', 'closed');
 
-      const { count: pendingCount } = await supabase
+      const { count: inProgressCount } = await supabase
         .from('tickets')
         .select('*', { count: 'exact', head: true })
-        .eq('status', 'pending');
+        .eq('status', 'in_progress');
+
+      const { count: resolvedCount } = await supabase
+        .from('tickets')
+        .select('*', { count: 'exact', head: true })
+        .eq('status', 'resolved');
 
       setStats({
         totalUsers: usersCount || 0,
@@ -68,7 +74,8 @@ const DashboardOverview = () => {
         totalDepartments: departmentsCount || 0,
         openTickets: openCount || 0,
         closedTickets: closedCount || 0,
-        pendingTickets: pendingCount || 0,
+        inProgressTickets: inProgressCount || 0,
+        resolvedTickets: resolvedCount || 0,
       });
     } catch (error) {
       console.error('Error fetching stats:', error);
@@ -111,20 +118,20 @@ const DashboardOverview = () => {
       bgColor: 'bg-orange-50 dark:bg-orange-950',
     },
     {
-      title: 'Closed Tickets',
-      value: stats.closedTickets,
-      description: 'Successfully resolved',
+      title: 'In Progress',
+      value: stats.inProgressTickets,
+      description: 'Tickets being worked on',
       icon: TrendingUp,
-      color: 'text-emerald-600 dark:text-emerald-400',
-      bgColor: 'bg-emerald-50 dark:bg-emerald-950',
+      color: 'text-blue-600 dark:text-blue-400',
+      bgColor: 'bg-blue-50 dark:bg-blue-950',
     },
     {
-      title: 'Pending Tickets',
-      value: stats.pendingTickets,
-      description: 'Awaiting response',
+      title: 'Resolved Tickets',
+      value: stats.resolvedTickets,
+      description: 'Successfully resolved',
       icon: TrendingDown,
-      color: 'text-red-600 dark:text-red-400',
-      bgColor: 'bg-red-50 dark:bg-red-950',
+      color: 'text-emerald-600 dark:text-emerald-400',
+      bgColor: 'bg-emerald-50 dark:bg-emerald-950',
     },
   ];
 
@@ -205,20 +212,35 @@ const DashboardOverview = () => {
               </div>
               
               <div className="flex items-center justify-between">
-                <span className="text-sm font-medium">Pending Tickets</span>
-                <span className="text-sm text-muted-foreground">{stats.pendingTickets}</span>
+                <span className="text-sm font-medium">In Progress</span>
+                <span className="text-sm text-muted-foreground">{stats.inProgressTickets}</span>
               </div>
               <div className="w-full bg-muted rounded-full h-2">
                 <div 
-                  className="bg-red-500 h-2 rounded-full transition-all duration-500"
+                  className="bg-blue-500 h-2 rounded-full transition-all duration-500"
                   style={{ 
                     width: stats.totalTickets > 0 
-                      ? `${(stats.pendingTickets / stats.totalTickets) * 100}%` 
+                      ? `${(stats.inProgressTickets / stats.totalTickets) * 100}%` 
                       : '0%' 
                   }}
                 ></div>
               </div>
               
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-medium">Resolved</span>
+                <span className="text-sm text-muted-foreground">{stats.resolvedTickets}</span>
+              </div>
+              <div className="w-full bg-muted rounded-full h-2">
+                <div 
+                  className="bg-emerald-500 h-2 rounded-full transition-all duration-500"
+                  style={{ 
+                    width: stats.totalTickets > 0 
+                      ? `${(stats.resolvedTickets / stats.totalTickets) * 100}%` 
+                      : '0%' 
+                  }}
+                ></div>
+              </div>
+
               <div className="flex items-center justify-between">
                 <span className="text-sm font-medium">Closed Tickets</span>
                 <span className="text-sm text-muted-foreground">{stats.closedTickets}</span>
