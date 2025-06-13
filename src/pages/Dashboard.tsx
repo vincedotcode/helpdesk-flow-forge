@@ -1,86 +1,93 @@
 
-import React from 'react';
-import { useAuth } from '@/contexts/AuthContext';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import UserManagement from '@/components/UserManagement';
+import React, { useState } from 'react';
+import { SidebarProvider, SidebarInset, SidebarTrigger } from '@/components/ui/sidebar';
+import { AppSidebar } from '@/components/AppSidebar';
+import DashboardOverview from '@/components/DashboardOverview';
+import EnhancedUserManagement from '@/components/EnhancedUserManagement';
 import DepartmentManagement from '@/components/DepartmentManagement';
 import TicketManagement from '@/components/TicketManagement';
-import { LogOut, Users, Building, Ticket } from 'lucide-react';
+import { Separator } from '@/components/ui/separator';
+import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from '@/components/ui/breadcrumb';
 
 const Dashboard = () => {
-  const { user, logout } = useAuth();
+  const [activeTab, setActiveTab] = useState('dashboard');
 
-  if (!user) return null;
-
-  const handleLogout = () => {
-    logout();
-  };
-
-  const canManageUsers = user.role === 'super_admin' || user.role === 'department_admin';
-  const canManageDepartments = user.role === 'super_admin';
-
-  return (
-    <div className="min-h-screen bg-gray-50">
-      <header className="bg-white shadow">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center py-6">
+  const renderContent = () => {
+    switch (activeTab) {
+      case 'dashboard':
+        return <DashboardOverview />;
+      case 'analytics':
+        return <DashboardOverview />;
+      case 'tickets':
+        return <TicketManagement />;
+      case 'departments':
+        return <DepartmentManagement />;
+      case 'users':
+        return <EnhancedUserManagement />;
+      case 'settings':
+        return (
+          <div className="space-y-6">
             <div>
-              <h1 className="text-3xl font-bold text-gray-900">Helpdesk Dashboard</h1>
-              <p className="text-sm text-gray-600">
-                Welcome, {user.first_name} {user.last_name} ({user.role.replace('_', ' ')})
+              <h1 className="text-3xl font-bold text-foreground">Settings</h1>
+              <p className="text-muted-foreground">
+                Configure your helpdesk system preferences
               </p>
             </div>
-            <Button variant="outline" onClick={handleLogout}>
-              <LogOut className="w-4 h-4 mr-2" />
-              Logout
-            </Button>
+            <div className="text-center py-12">
+              <p className="text-muted-foreground">Settings panel coming soon...</p>
+            </div>
           </div>
-        </div>
-      </header>
+        );
+      default:
+        return <DashboardOverview />;
+    }
+  };
 
-      <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
-        <div className="px-4 py-6 sm:px-0">
-          <Tabs defaultValue="tickets" className="w-full">
-            <TabsList className="grid w-full grid-cols-3">
-              <TabsTrigger value="tickets">
-                <Ticket className="w-4 h-4 mr-2" />
-                Tickets
-              </TabsTrigger>
-              {canManageDepartments && (
-                <TabsTrigger value="departments">
-                  <Building className="w-4 h-4 mr-2" />
-                  Departments
-                </TabsTrigger>
-              )}
-              {canManageUsers && (
-                <TabsTrigger value="users">
-                  <Users className="w-4 h-4 mr-2" />
-                  Users
-                </TabsTrigger>
-              )}
-            </TabsList>
+  const getBreadcrumbs = () => {
+    const breadcrumbMap: Record<string, string> = {
+      dashboard: 'Dashboard',
+      analytics: 'Analytics',
+      tickets: 'Tickets',
+      departments: 'Departments',
+      users: 'Users',
+      settings: 'Settings',
+    };
 
-            <TabsContent value="tickets" className="mt-6">
-              <TicketManagement />
-            </TabsContent>
+    return breadcrumbMap[activeTab] || 'Dashboard';
+  };
 
-            {canManageDepartments && (
-              <TabsContent value="departments" className="mt-6">
-                <DepartmentManagement />
-              </TabsContent>
-            )}
-
-            {canManageUsers && (
-              <TabsContent value="users" className="mt-6">
-                <UserManagement />
-              </TabsContent>
-            )}
-          </Tabs>
-        </div>
-      </main>
-    </div>
+  return (
+    <SidebarProvider>
+      <div className="min-h-screen flex w-full bg-background">
+        <AppSidebar activeTab={activeTab} onTabChange={setActiveTab} />
+        <SidebarInset>
+          <header className="flex h-16 shrink-0 items-center gap-2 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+            <div className="flex items-center gap-2 px-4">
+              <SidebarTrigger className="-ml-1" />
+              <Separator orientation="vertical" className="mr-2 h-4" />
+              <Breadcrumb>
+                <BreadcrumbList>
+                  <BreadcrumbItem className="hidden md:block">
+                    <BreadcrumbLink href="#">
+                      Helpdesk
+                    </BreadcrumbLink>
+                  </BreadcrumbItem>
+                  <BreadcrumbSeparator className="hidden md:block" />
+                  <BreadcrumbItem>
+                    <BreadcrumbPage>{getBreadcrumbs()}</BreadcrumbPage>
+                  </BreadcrumbItem>
+                </BreadcrumbList>
+              </Breadcrumb>
+            </div>
+          </header>
+          <main className="flex-1 overflow-auto">
+            <div className="container mx-auto p-6">
+              {renderContent()}
+            </div>
+          </main>
+        </SidebarInset>
+      </div>
+    </SidebarProvider>
   );
 };
 
