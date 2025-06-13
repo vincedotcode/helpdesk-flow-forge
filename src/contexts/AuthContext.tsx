@@ -109,30 +109,42 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const login = async (email: string, password: string) => {
     try {
+      console.log('Attempting login for:', email);
+      
       // Use any type for RPC call to bypass TypeScript strict checking
       const result = await (supabase as any).rpc('authenticate_user', {
         user_email: email,
         user_password: password
       });
       
-      const { data, error } = result as { data: User[] | null; error: any };
+      console.log('Login RPC result:', result);
+      
+      const { data, error } = result;
 
       if (error) {
+        console.error('Login error:', error);
         return { success: false, error: 'Invalid credentials' };
       }
 
       if (data && Array.isArray(data) && data.length > 0) {
         const userData = data[0];
+        console.log('User data received:', userData);
+        
         const sessionToken = generateSessionToken();
         const expiresAt = new Date();
         expiresAt.setDate(expiresAt.getDate() + 7); // 7 days
 
         // Create session
-        await supabase.from('user_sessions').insert({
+        const { error: sessionError } = await supabase.from('user_sessions').insert({
           user_id: userData.id,
           session_token: sessionToken,
           expires_at: expiresAt.toISOString()
         });
+
+        if (sessionError) {
+          console.error('Session creation error:', sessionError);
+          return { success: false, error: 'Failed to create session' };
+        }
 
         cookieUtils.set('auth_token', sessionToken, { expires: 7 });
         setUser(userData);
@@ -161,7 +173,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         user_last_name: userData.last_name
       });
       
-      const { data, error } = result as { data: any; error: any };
+      const { data, error } = result;
 
       if (error) {
         return { success: false, error: error.message };
