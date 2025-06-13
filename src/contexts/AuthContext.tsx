@@ -44,7 +44,6 @@ const cookieUtils = {
   set: (name: string, value: string, options?: { expires?: number }): void => {
     if (typeof window === 'undefined') return;
     localStorage.setItem(`cookie_${name}`, value);
-    // For expires, we could implement expiration logic, but for simplicity we'll just store it
     if (options?.expires) {
       const expiryDate = new Date();
       expiryDate.setDate(expiryDate.getDate() + options.expires);
@@ -111,15 +110,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       console.log('Attempting login for:', email);
       
-      // Use any type for RPC call to bypass TypeScript strict checking
-      const result = await (supabase as any).rpc('authenticate_user', {
+      // Use the authenticate_user database function
+      const { data, error } = await supabase.rpc('authenticate_user', {
         user_email: email,
         user_password: password
       });
       
-      console.log('Login RPC result:', result);
-      
-      const { data, error } = result;
+      console.log('Login RPC result:', { data, error });
 
       if (error) {
         console.error('Login error:', error);
@@ -165,21 +162,30 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     last_name: string;
   }) => {
     try {
-      // Use any type for RPC call to bypass TypeScript strict checking
-      const result = await (supabase as any).rpc('register_user', {
+      // Use the register_user database function
+      const { data, error } = await supabase.rpc('register_user', {
         user_email: userData.email,
         user_password: userData.password,
         user_first_name: userData.first_name,
         user_last_name: userData.last_name
       });
       
-      const { data, error } = result;
+      console.log('Signup RPC result:', { data, error });
 
       if (error) {
         return { success: false, error: error.message };
       }
 
-      return { success: true };
+      if (data && Array.isArray(data) && data.length > 0) {
+        const result = data[0];
+        if (result.success) {
+          return { success: true };
+        } else {
+          return { success: false, error: result.message };
+        }
+      }
+
+      return { success: false, error: 'Registration failed' };
     } catch (error) {
       console.error('Signup error:', error);
       return { success: false, error: 'Registration failed' };

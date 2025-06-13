@@ -230,7 +230,46 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      authenticate_user: {
+        Args: { user_email: string; user_password: string }
+        Returns: {
+          id: string
+          email: string
+          first_name: string
+          last_name: string
+          role: Database["public"]["Enums"]["user_role"]
+          department_id: string
+          is_active: boolean
+        }[]
+      }
+      create_user_by_admin: {
+        Args: {
+          user_email: string
+          user_password: string
+          user_first_name: string
+          user_last_name: string
+          user_role?: Database["public"]["Enums"]["user_role"]
+          user_department_id?: string
+        }
+        Returns: {
+          success: boolean
+          user_id: string
+          message: string
+        }[]
+      }
+      register_user: {
+        Args: {
+          user_email: string
+          user_password: string
+          user_first_name: string
+          user_last_name: string
+        }
+        Returns: {
+          success: boolean
+          user_id: string
+          message: string
+        }[]
+      }
     }
     Enums: {
       ticket_priority: "low" | "medium" | "high" | "urgent"

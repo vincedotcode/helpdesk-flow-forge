@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -114,36 +113,46 @@ const UserManagement = () => {
     setLoading(true);
 
     try {
-      // Use any type for RPC call to bypass TypeScript strict checking
-      const result = await (supabase as any).rpc('create_user_by_admin', {
+      // Use the create_user_by_admin database function
+      const { data, error } = await supabase.rpc('create_user_by_admin', {
         user_email: newUser.email,
         user_password: newUser.password,
         user_first_name: newUser.first_name,
         user_last_name: newUser.last_name,
         user_role: newUser.role,
-        user_department_id: newUser.department_id || null,
-        created_by_id: user?.id || ''
+        user_department_id: newUser.department_id || null
       });
       
-      const { data, error } = result as { data: any; error: any };
+      console.log('Create user RPC result:', { data, error });
 
       if (error) throw error;
 
-      toast({
-        title: "Success",
-        description: "User created successfully",
-      });
+      if (data && Array.isArray(data) && data.length > 0) {
+        const result = data[0];
+        if (result.success) {
+          toast({
+            title: "Success",
+            description: "User created successfully",
+          });
 
-      setNewUser({
-        email: '',
-        password: '',
-        first_name: '',
-        last_name: '',
-        role: 'end_user' as UserRole,
-        department_id: ''
-      });
-      setIsAddDialogOpen(false);
-      fetchUsers();
+          setNewUser({
+            email: '',
+            password: '',
+            first_name: '',
+            last_name: '',
+            role: 'end_user' as UserRole,
+            department_id: ''
+          });
+          setIsAddDialogOpen(false);
+          fetchUsers();
+        } else {
+          toast({
+            title: "Error",
+            description: result.message,
+            variant: "destructive",
+          });
+        }
+      }
     } catch (error) {
       console.error('Error creating user:', error);
       toast({
