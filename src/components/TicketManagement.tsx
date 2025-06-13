@@ -39,6 +39,8 @@ interface Department {
   name: string;
 }
 
+type TicketPriority = 'low' | 'medium' | 'high' | 'urgent';
+
 const TicketManagement = () => {
   const { user } = useAuth();
   const [tickets, setTickets] = useState<Ticket[]>([]);
@@ -50,7 +52,7 @@ const TicketManagement = () => {
   const [newTicket, setNewTicket] = useState({
     title: '',
     description: '',
-    priority: 'medium',
+    priority: 'medium' as TicketPriority,
     department_id: ''
   });
 
@@ -133,8 +135,8 @@ const TicketManagement = () => {
           description: newTicket.description.trim(),
           priority: newTicket.priority,
           department_id: newTicket.department_id || null,
-          created_by: user?.id,
-          status: 'open'
+          created_by: user?.id || '',
+          status: 'open' as const
         });
 
       if (error) throw error;
@@ -147,7 +149,7 @@ const TicketManagement = () => {
       setNewTicket({
         title: '',
         description: '',
-        priority: 'medium',
+        priority: 'medium' as TicketPriority,
         department_id: ''
       });
       setIsAddDialogOpen(false);
@@ -230,7 +232,7 @@ const TicketManagement = () => {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="priority">Priority</Label>
-                <Select value={newTicket.priority} onValueChange={(value) => setNewTicket({ ...newTicket, priority: value })}>
+                <Select value={newTicket.priority} onValueChange={(value: TicketPriority) => setNewTicket({ ...newTicket, priority: value })}>
                   <SelectTrigger>
                     <SelectValue placeholder="Select priority" />
                   </SelectTrigger>

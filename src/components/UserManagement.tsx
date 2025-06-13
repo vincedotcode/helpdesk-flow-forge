@@ -27,6 +27,8 @@ interface Department {
   name: string;
 }
 
+type UserRole = 'super_admin' | 'department_admin' | 'department_technician' | 'end_user';
+
 const UserManagement = () => {
   const { user } = useAuth();
   const [users, setUsers] = useState<User[]>([]);
@@ -40,7 +42,7 @@ const UserManagement = () => {
     password: '',
     first_name: '',
     last_name: '',
-    role: 'end_user',
+    role: 'end_user' as UserRole,
     department_id: ''
   });
 
@@ -119,7 +121,7 @@ const UserManagement = () => {
         user_last_name: newUser.last_name,
         user_role: newUser.role,
         user_department_id: newUser.department_id || null,
-        created_by_id: user?.id
+        created_by_id: user?.id || ''
       });
 
       if (error) throw error;
@@ -134,7 +136,7 @@ const UserManagement = () => {
         password: '',
         first_name: '',
         last_name: '',
-        role: 'end_user',
+        role: 'end_user' as UserRole,
         department_id: ''
       });
       setIsAddDialogOpen(false);
@@ -252,7 +254,7 @@ const UserManagement = () => {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="role">Role</Label>
-                <Select value={newUser.role} onValueChange={(value) => setNewUser({ ...newUser, role: value })}>
+                <Select value={newUser.role} onValueChange={(value: UserRole) => setNewUser({ ...newUser, role: value })}>
                   <SelectTrigger>
                     <SelectValue placeholder="Select role" />
                   </SelectTrigger>
