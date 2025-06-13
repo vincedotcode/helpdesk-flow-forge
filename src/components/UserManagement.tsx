@@ -114,7 +114,8 @@ const UserManagement = () => {
     setLoading(true);
 
     try {
-      const { data, error } = await supabase.rpc('create_user_by_admin', {
+      // Use any type for RPC call to bypass TypeScript strict checking
+      const result = await (supabase as any).rpc('create_user_by_admin', {
         user_email: newUser.email,
         user_password: newUser.password,
         user_first_name: newUser.first_name,
@@ -122,7 +123,9 @@ const UserManagement = () => {
         user_role: newUser.role,
         user_department_id: newUser.department_id || null,
         created_by_id: user?.id || ''
-      }) as { data: any; error: any };
+      });
+      
+      const { data, error } = result as { data: any; error: any };
 
       if (error) throw error;
 

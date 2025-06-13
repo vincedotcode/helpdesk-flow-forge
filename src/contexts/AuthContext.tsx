@@ -87,10 +87,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const login = async (email: string, password: string) => {
     try {
-      const { data, error } = await supabase.rpc('authenticate_user', {
+      // Use any type for RPC call to bypass TypeScript strict checking
+      const result = await (supabase as any).rpc('authenticate_user', {
         user_email: email,
         user_password: password
-      }) as { data: User[] | null; error: any };
+      });
+      
+      const { data, error } = result as { data: User[] | null; error: any };
 
       if (error) {
         return { success: false, error: 'Invalid credentials' };
@@ -128,12 +131,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     last_name: string;
   }) => {
     try {
-      const { data, error } = await supabase.rpc('register_user', {
+      // Use any type for RPC call to bypass TypeScript strict checking
+      const result = await (supabase as any).rpc('register_user', {
         user_email: userData.email,
         user_password: userData.password,
         user_first_name: userData.first_name,
         user_last_name: userData.last_name
-      }) as { data: any; error: any };
+      });
+      
+      const { data, error } = result as { data: any; error: any };
 
       if (error) {
         return { success: false, error: error.message };
