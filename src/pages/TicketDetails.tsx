@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -92,7 +91,7 @@ const TicketDetails = () => {
     }
   };
 
-  const handleStatusUpdate = async (status: string) => {
+  const handleStatusUpdate = async (status: 'open' | 'in_progress' | 'resolved' | 'closed') => {
     if (!ticket) return;
 
     try {
@@ -129,7 +128,7 @@ const TicketDetails = () => {
   };
 
   const canUpdateStatus = (ticket: EnhancedTicket) => {
-    return user?.role === 'department_technician' && ticket.assigned_to?.first_name;
+    return user?.role === 'department_technician' && !!ticket.assigned_to?.first_name;
   };
 
   const showChatButton = (ticket: EnhancedTicket) => {
