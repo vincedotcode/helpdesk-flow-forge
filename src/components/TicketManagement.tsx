@@ -11,7 +11,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/components/ui/use-toast';
-import { Plus, MessageSquare } from 'lucide-react';
+import { Plus, MessageSquare, UserCheck } from 'lucide-react';
 
 interface Ticket {
   id: string;
@@ -28,6 +28,7 @@ interface Ticket {
   assigned_to?: {
     first_name: string;
     last_name: string;
+    role: string;
   };
   departments?: {
     name: string;
@@ -39,13 +40,25 @@ interface Department {
   name: string;
 }
 
+interface DepartmentUser {
+  id: string;
+  first_name: string;
+  last_name: string;
+  email: string;
+  role: string;
+}
+
 type TicketPriority = 'low' | 'medium' | 'high' | 'urgent';
+type TicketStatus = 'open' | 'in_progress' | 'resolved' | 'closed';
 
 const TicketManagement = () => {
   const { user } = useAuth();
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [departments, setDepartments] = useState<Department[]>([]);
+  const [departmentTechnicians, setDepartmentTechnicians] = useState<DepartmentUser[]>([]);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [isAssignDialogOpen, setIsAssignDialogOpen] = useState(false);
+  const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null);
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
 
@@ -56,10 +69,18 @@ const TicketManagement = () => {
     department_id: ''
   });
 
+  const [assignmentData, setAssignmentData] = useState({
+    assigned_to: '',
+    status: 'in_progress' as TicketStatus
+  });
+
   useEffect(() => {
     fetchTickets();
     fetchDepartments();
-  }, []);
+    if (user?.role === 'department_admin' && user.department_id) {
+      fetchDepartmentTechnicians(user.department_id);
+    }
+  }, [user]);
 
   const fetchTickets = async () => {
     try {
@@ -73,7 +94,7 @@ const TicketManagement = () => {
           priority,
           created_at,
           created_by:users!tickets_created_by_fkey(first_name, last_name, email),
-          assigned_to:users!tickets_assigned_to_fkey(first_name, last_name),
+          assigned_to:users!tickets_assigned_to_fkey(first_name, last_name, role),
           departments(name)
         `)
         .order('created_at', { ascending: false });
@@ -82,7 +103,7 @@ const TicketManagement = () => {
       if (user?.role === 'end_user') {
         query = query.eq('created_by', user.id);
       } else if (user?.role === 'department_technician' && user.department_id) {
-        query = query.eq('department_id', user.department_id);
+        query = query.or(`assigned_to.eq.${user.id},department_id.eq.${user.department_id}`);
       } else if (user?.role === 'department_admin' && user.department_id) {
         query = query.eq('department_id', user.department_id);
       }
@@ -115,6 +136,40 @@ const TicketManagement = () => {
     }
   };
 
+  const fetchDepartmentTechnicians = async (departmentId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('users')
+        .select('id, first_name, last_name, email, role')
+        .eq('department_id', departmentId)
+        .eq('role', 'department_technician')
+        .eq('is_active', true);
+      
+      if (error) throw error;
+      setDepartmentTechnicians(data || []);
+    } catch (error) {
+      console.error('Error fetching department technicians:', error);
+    }
+  };
+
+  const findDepartmentAdmin = async (departmentId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('users')
+        .select('id')
+        .eq('department_id', departmentId)
+        .eq('role', 'department_admin')
+        .eq('is_active', true)
+        .single();
+      
+      if (error) throw error;
+      return data?.id || null;
+    } catch (error) {
+      console.error('Error finding department admin:', error);
+      return null;
+    }
+  };
+
   const handleCreateTicket = async () => {
     if (!newTicket.title.trim() || !newTicket.description.trim()) {
       toast({
@@ -128,6 +183,12 @@ const TicketManagement = () => {
     setLoading(true);
 
     try {
+      // Find department admin if department is selected
+      let assignedTo = null;
+      if (newTicket.department_id) {
+        assignedTo = await findDepartmentAdmin(newTicket.department_id);
+      }
+
       const { error } = await supabase
         .from('tickets')
         .insert({
@@ -136,14 +197,17 @@ const TicketManagement = () => {
           priority: newTicket.priority,
           department_id: newTicket.department_id || null,
           created_by: user?.id || '',
-          status: 'open' as const
+          assigned_to: assignedTo,
+          status: assignedTo ? 'in_progress' : 'open'
         });
 
       if (error) throw error;
 
       toast({
         title: "Success",
-        description: "Ticket created successfully",
+        description: assignedTo 
+          ? "Ticket created and assigned to department admin" 
+          : "Ticket created successfully",
       });
 
       setNewTicket({
@@ -166,6 +230,84 @@ const TicketManagement = () => {
     }
   };
 
+  const handleAssignTicket = async () => {
+    if (!selectedTicket || !assignmentData.assigned_to) {
+      toast({
+        title: "Error",
+        description: "Please select a technician to assign",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      const { error } = await supabase
+        .from('tickets')
+        .update({
+          assigned_to: assignmentData.assigned_to,
+          status: assignmentData.status
+        })
+        .eq('id', selectedTicket.id);
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: "Ticket assigned successfully",
+      });
+
+      setIsAssignDialogOpen(false);
+      setSelectedTicket(null);
+      setAssignmentData({ assigned_to: '', status: 'in_progress' });
+      fetchTickets();
+    } catch (error) {
+      console.error('Error assigning ticket:', error);
+      toast({
+        title: "Error",
+        description: "Failed to assign ticket",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleStatusUpdate = async (ticketId: string, newStatus: TicketStatus) => {
+    try {
+      const { error } = await supabase
+        .from('tickets')
+        .update({ 
+          status: newStatus,
+          resolved_at: newStatus === 'resolved' ? new Date().toISOString() : null
+        })
+        .eq('id', ticketId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: "Ticket status updated",
+      });
+
+      fetchTickets();
+    } catch (error) {
+      console.error('Error updating ticket status:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update ticket status",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const openAssignDialog = (ticket: Ticket) => {
+    setSelectedTicket(ticket);
+    setAssignmentData({ assigned_to: '', status: 'in_progress' });
+    setIsAssignDialogOpen(true);
+  };
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'open': return 'bg-blue-100 text-blue-800';
@@ -186,6 +328,15 @@ const TicketManagement = () => {
     }
   };
 
+  const canAssignTicket = (ticket: Ticket) => {
+    return user?.role === 'department_admin' && 
+           (!ticket.assigned_to || ticket.assigned_to.role === 'department_admin');
+  };
+
+  const canUpdateStatus = (ticket: Ticket) => {
+    return user?.role === 'department_technician' && ticket.assigned_to?.first_name;
+  };
+
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between">
@@ -194,7 +345,9 @@ const TicketManagement = () => {
           <CardDescription>
             {user?.role === 'end_user' 
               ? 'View and create your support tickets'
-              : 'Manage support tickets and assignments'
+              : user?.role === 'department_admin'
+              ? 'Manage department tickets and assign to technicians'
+              : 'Manage assigned tickets and update status'
             }
           </CardDescription>
         </div>
@@ -251,7 +404,7 @@ const TicketManagement = () => {
                     <SelectValue placeholder="Select department" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">General Support</SelectItem>
+                    <SelectItem value="general">General Support</SelectItem>
                     {departments.map((dept) => (
                       <SelectItem key={dept.id} value={dept.id}>
                         {dept.name}
@@ -295,7 +448,7 @@ const TicketManagement = () => {
                     <div className="text-sm text-gray-500">
                       <p>Created by: {ticket.created_by.first_name} {ticket.created_by.last_name}</p>
                       {ticket.assigned_to && (
-                        <p>Assigned to: {ticket.assigned_to.first_name} {ticket.assigned_to.last_name}</p>
+                        <p>Assigned to: {ticket.assigned_to.first_name} {ticket.assigned_to.last_name} ({ticket.assigned_to.role?.replace('_', ' ')})</p>
                       )}
                       <p>Created: {new Date(ticket.created_at).toLocaleDateString()}</p>
                     </div>
@@ -305,6 +458,33 @@ const TicketManagement = () => {
                       <MessageSquare className="w-4 h-4 mr-2" />
                       Comments
                     </Button>
+                    
+                    {canAssignTicket(ticket) && (
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => openAssignDialog(ticket)}
+                      >
+                        <UserCheck className="w-4 h-4 mr-2" />
+                        Assign
+                      </Button>
+                    )}
+
+                    {canUpdateStatus(ticket) && (
+                      <Select 
+                        value={ticket.status} 
+                        onValueChange={(value: TicketStatus) => handleStatusUpdate(ticket.id, value)}
+                      >
+                        <SelectTrigger className="w-32">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="in_progress">In Progress</SelectItem>
+                          <SelectItem value="resolved">Resolved</SelectItem>
+                          <SelectItem value="closed">Closed</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    )}
                   </div>
                 </div>
               </CardContent>
@@ -317,6 +497,58 @@ const TicketManagement = () => {
           </div>
         )}
       </CardContent>
+
+      {/* Assignment Dialog */}
+      <Dialog open={isAssignDialogOpen} onOpenChange={setIsAssignDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Assign Ticket</DialogTitle>
+            <DialogDescription>
+              Assign "{selectedTicket?.title}" to a department technician
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="technician">Select Technician</Label>
+              <Select value={assignmentData.assigned_to} onValueChange={(value) => setAssignmentData({ ...assignmentData, assigned_to: value })}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select technician" />
+                </SelectTrigger>
+                <SelectContent>
+                  {departmentTechnicians.map((tech) => (
+                    <SelectItem key={tech.id} value={tech.id}>
+                      {tech.first_name} {tech.last_name} ({tech.email})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {departmentTechnicians.length === 0 && (
+                <p className="text-sm text-muted-foreground">
+                  No technicians available in this department.
+                </p>
+              )}
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="status">Status</Label>
+              <Select value={assignmentData.status} onValueChange={(value: TicketStatus) => setAssignmentData({ ...assignmentData, status: value })}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="in_progress">In Progress</SelectItem>
+                  <SelectItem value="open">Open</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsAssignDialogOpen(false)}>Cancel</Button>
+            <Button onClick={handleAssignTicket} disabled={loading || departmentTechnicians.length === 0}>
+              {loading ? 'Assigning...' : 'Assign Ticket'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 };
