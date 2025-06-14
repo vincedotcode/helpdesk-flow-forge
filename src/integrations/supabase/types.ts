@@ -33,6 +33,54 @@ export type Database = {
         }
         Relationships: []
       }
+      ticket_chat_messages: {
+        Row: {
+          attachment_url: string | null
+          created_at: string | null
+          id: string
+          message: string
+          message_type: string | null
+          ticket_id: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          attachment_url?: string | null
+          created_at?: string | null
+          id?: string
+          message: string
+          message_type?: string | null
+          ticket_id: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          attachment_url?: string | null
+          created_at?: string | null
+          id?: string
+          message?: string
+          message_type?: string | null
+          ticket_id?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ticket_chat_messages_ticket_id_fkey"
+            columns: ["ticket_id"]
+            isOneToOne: false
+            referencedRelation: "tickets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ticket_chat_messages_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ticket_comments: {
         Row: {
           comment: string
@@ -74,43 +122,70 @@ export type Database = {
       }
       tickets: {
         Row: {
+          actual_behavior: string | null
+          additional_info: string | null
+          affected_systems: string | null
           assigned_to: string | null
+          attachments: Json | null
+          business_impact: string | null
+          category: string | null
           created_at: string | null
           created_by: string
           department_id: string | null
           description: string
+          expected_behavior: string | null
           id: string
           priority: Database["public"]["Enums"]["ticket_priority"] | null
           resolved_at: string | null
           status: Database["public"]["Enums"]["ticket_status"] | null
+          steps_to_reproduce: string | null
           title: string
           updated_at: string | null
+          urgency_level: string | null
         }
         Insert: {
+          actual_behavior?: string | null
+          additional_info?: string | null
+          affected_systems?: string | null
           assigned_to?: string | null
+          attachments?: Json | null
+          business_impact?: string | null
+          category?: string | null
           created_at?: string | null
           created_by: string
           department_id?: string | null
           description: string
+          expected_behavior?: string | null
           id?: string
           priority?: Database["public"]["Enums"]["ticket_priority"] | null
           resolved_at?: string | null
           status?: Database["public"]["Enums"]["ticket_status"] | null
+          steps_to_reproduce?: string | null
           title: string
           updated_at?: string | null
+          urgency_level?: string | null
         }
         Update: {
+          actual_behavior?: string | null
+          additional_info?: string | null
+          affected_systems?: string | null
           assigned_to?: string | null
+          attachments?: Json | null
+          business_impact?: string | null
+          category?: string | null
           created_at?: string | null
           created_by?: string
           department_id?: string | null
           description?: string
+          expected_behavior?: string | null
           id?: string
           priority?: Database["public"]["Enums"]["ticket_priority"] | null
           resolved_at?: string | null
           status?: Database["public"]["Enums"]["ticket_status"] | null
+          steps_to_reproduce?: string | null
           title?: string
           updated_at?: string | null
+          urgency_level?: string | null
         }
         Relationships: [
           {

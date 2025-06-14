@@ -1,17 +1,14 @@
-
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Badge } from '@/components/ui/badge';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { useToast } from '@/components/ui/use-toast';
-import { Plus, MessageSquare, UserCheck } from 'lucide-react';
+import { Plus, Eye } from 'lucide-react';
+import DetailedTicketForm from './DetailedTicketForm';
+import EnhancedTicketView from './EnhancedTicketView';
 
 interface Ticket {
   id: string;
@@ -58,6 +55,7 @@ const TicketManagement = () => {
   const [departmentTechnicians, setDepartmentTechnicians] = useState<DepartmentUser[]>([]);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isAssignDialogOpen, setIsAssignDialogOpen] = useState(false);
+  const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
   const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null);
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
@@ -308,6 +306,11 @@ const TicketManagement = () => {
     setIsAssignDialogOpen(true);
   };
 
+  const openViewDialog = (ticket: Ticket) => {
+    setSelectedTicket(ticket);
+    setIsViewDialogOpen(true);
+  };
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'open': return 'bg-blue-100 text-blue-800';
@@ -337,6 +340,15 @@ const TicketManagement = () => {
     return user?.role === 'department_technician' && ticket.assigned_to?.first_name;
   };
 
+  const showChatButton = (ticket: Ticket) => {
+    return ticket.assigned_to && (
+      user?.id === ticket.assigned_to?.id ||
+      user?.id === ticket.created_by?.id ||
+      user?.role === 'department_admin' ||
+      user?.role === 'super_admin'
+    );
+  };
+
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between">
@@ -358,68 +370,19 @@ const TicketManagement = () => {
               Create Ticket
             </Button>
           </DialogTrigger>
-          <DialogContent className="sm:max-w-md">
+          <DialogContent className="max-w-4xl max-h-[90vh]">
             <DialogHeader>
               <DialogTitle>Create New Ticket</DialogTitle>
-              <DialogDescription>Submit a new support request</DialogDescription>
+              <DialogDescription>Submit a detailed support request</DialogDescription>
             </DialogHeader>
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="title">Title</Label>
-                <Input
-                  id="title"
-                  value={newTicket.title}
-                  onChange={(e) => setNewTicket({ ...newTicket, title: e.target.value })}
-                  placeholder="Brief description of the issue"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="description">Description</Label>
-                <Textarea
-                  id="description"
-                  value={newTicket.description}
-                  onChange={(e) => setNewTicket({ ...newTicket, description: e.target.value })}
-                  placeholder="Detailed description of the issue"
-                  rows={4}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="priority">Priority</Label>
-                <Select value={newTicket.priority} onValueChange={(value: TicketPriority) => setNewTicket({ ...newTicket, priority: value })}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select priority" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="low">Low</SelectItem>
-                    <SelectItem value="medium">Medium</SelectItem>
-                    <SelectItem value="high">High</SelectItem>
-                    <SelectItem value="urgent">Urgent</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="department">Department</Label>
-                <Select value={newTicket.department_id} onValueChange={(value) => setNewTicket({ ...newTicket, department_id: value })}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select department" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="general">General Support</SelectItem>
-                    {departments.map((dept) => (
-                      <SelectItem key={dept.id} value={dept.id}>
-                        {dept.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>Cancel</Button>
-              <Button onClick={handleCreateTicket} disabled={loading}>
-                {loading ? 'Creating...' : 'Create Ticket'}
-              </Button>
-            </DialogFooter>
+            <DetailedTicketForm
+              departments={departments}
+              onSuccess={() => {
+                setIsAddDialogOpen(false);
+                fetchTickets();
+              }}
+              onCancel={() => setIsAddDialogOpen(false)}
+            />
           </DialogContent>
         </Dialog>
       </CardHeader>
@@ -431,7 +394,7 @@ const TicketManagement = () => {
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
                     <h3 className="font-semibold text-lg mb-2">{ticket.title}</h3>
-                    <p className="text-gray-600 mb-3">{ticket.description}</p>
+                    <p className="text-gray-600 mb-3 line-clamp-2">{ticket.description}</p>
                     <div className="flex items-center space-x-2 mb-2">
                       <Badge className={getStatusColor(ticket.status)}>
                         {ticket.status.replace('_', ' ')}
@@ -454,9 +417,13 @@ const TicketManagement = () => {
                     </div>
                   </div>
                   <div className="flex flex-col space-y-2">
-                    <Button variant="outline" size="sm">
-                      <MessageSquare className="w-4 h-4 mr-2" />
-                      Comments
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => openViewDialog(ticket)}
+                    >
+                      <Eye className="w-4 h-4 mr-2" />
+                      View Details
                     </Button>
                     
                     {canAssignTicket(ticket) && (
@@ -497,6 +464,25 @@ const TicketManagement = () => {
           </div>
         )}
       </CardContent>
+
+      {/* Enhanced View Dialog */}
+      <Dialog open={isViewDialogOpen} onOpenChange={setIsViewDialogOpen}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          {selectedTicket && (
+            <EnhancedTicketView
+              ticket={selectedTicket}
+              onAssign={() => {
+                setIsViewDialogOpen(false);
+                openAssignDialog(selectedTicket);
+              }}
+              onUpdateStatus={(status) => handleStatusUpdate(selectedTicket.id, status as TicketStatus)}
+              canAssign={canAssignTicket(selectedTicket)}
+              canUpdateStatus={canUpdateStatus(selectedTicket)}
+              showChatButton={showChatButton(selectedTicket)}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
 
       {/* Assignment Dialog */}
       <Dialog open={isAssignDialogOpen} onOpenChange={setIsAssignDialogOpen}>
