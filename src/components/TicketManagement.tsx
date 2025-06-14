@@ -4,9 +4,11 @@ import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
+import { Badge } from '@/components/ui/badge';
+import { Label } from '@/components/ui/label';
 import { useToast } from '@/components/ui/use-toast';
-import { Plus, Eye } from 'lucide-react';
+import { Plus, Eye, UserCheck } from 'lucide-react';
 import DetailedTicketForm from './DetailedTicketForm';
 import EnhancedTicketView from './EnhancedTicketView';
 
@@ -18,11 +20,13 @@ interface Ticket {
   priority: string;
   created_at: string;
   created_by: {
+    id?: string;
     first_name: string;
     last_name: string;
     email: string;
   };
   assigned_to?: {
+    id?: string;
     first_name: string;
     last_name: string;
     role: string;
@@ -91,8 +95,8 @@ const TicketManagement = () => {
           status,
           priority,
           created_at,
-          created_by:users!tickets_created_by_fkey(first_name, last_name, email),
-          assigned_to:users!tickets_assigned_to_fkey(first_name, last_name, role),
+          created_by:users!tickets_created_by_fkey(id, first_name, last_name, email),
+          assigned_to:users!tickets_assigned_to_fkey(id, first_name, last_name, role),
           departments(name)
         `)
         .order('created_at', { ascending: false });

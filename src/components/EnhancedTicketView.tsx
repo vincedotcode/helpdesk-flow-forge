@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Separator } from '@/components/ui/separator';
+import { supabase } from '@/integrations/supabase/client';
 import TicketChat from './TicketChat';
 import { MessageSquare, Paperclip, Calendar, User, Building } from 'lucide-react';
 
