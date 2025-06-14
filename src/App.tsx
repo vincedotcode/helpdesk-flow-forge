@@ -9,6 +9,7 @@ import { ThemeProvider } from "./components/ThemeProvider";
 import ProtectedRoute from "./components/ProtectedRoute";
 import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
+import TicketDetails from "./pages/TicketDetails";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 
@@ -30,6 +31,14 @@ const App = () => (
                 element={
                   <ProtectedRoute>
                     <Dashboard />
+                  </ProtectedRoute>
+                } 
+              />
+              <Route 
+                path="/dashboard/ticket/:ticketId" 
+                element={
+                  <ProtectedRoute>
+                    <TicketDetails />
                   </ProtectedRoute>
                 } 
               />

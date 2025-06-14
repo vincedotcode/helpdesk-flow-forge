@@ -9,8 +9,8 @@ import { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/components/ui/use-toast';
 import { Plus, Eye, UserCheck } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import DetailedTicketForm from './DetailedTicketForm';
-import EnhancedTicketView from './EnhancedTicketView';
 
 interface Ticket {
   id: string;
@@ -54,6 +54,7 @@ type TicketStatus = 'open' | 'in_progress' | 'resolved' | 'closed';
 
 const TicketManagement = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [departments, setDepartments] = useState<Department[]>([]);
   const [departmentTechnicians, setDepartmentTechnicians] = useState<DepartmentUser[]>([]);
@@ -311,8 +312,7 @@ const TicketManagement = () => {
   };
 
   const openViewDialog = (ticket: Ticket) => {
-    setSelectedTicket(ticket);
-    setIsViewDialogOpen(true);
+    navigate(`/dashboard/ticket/${ticket.id}`);
   };
 
   const getStatusColor = (status: string) => {
@@ -468,25 +468,6 @@ const TicketManagement = () => {
           </div>
         )}
       </CardContent>
-
-      {/* Enhanced View Dialog */}
-      <Dialog open={isViewDialogOpen} onOpenChange={setIsViewDialogOpen}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-          {selectedTicket && (
-            <EnhancedTicketView
-              ticket={selectedTicket}
-              onAssign={() => {
-                setIsViewDialogOpen(false);
-                openAssignDialog(selectedTicket);
-              }}
-              onUpdateStatus={(status) => handleStatusUpdate(selectedTicket.id, status as TicketStatus)}
-              canAssign={canAssignTicket(selectedTicket)}
-              canUpdateStatus={canUpdateStatus(selectedTicket)}
-              showChatButton={showChatButton(selectedTicket)}
-            />
-          )}
-        </DialogContent>
-      </Dialog>
 
       {/* Assignment Dialog */}
       <Dialog open={isAssignDialogOpen} onOpenChange={setIsAssignDialogOpen}>
