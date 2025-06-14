@@ -15,7 +15,7 @@ interface EnhancedTicket {
   title: string;
   description: string;
   category?: string;
-  status: string;
+  status: 'open' | 'in_progress' | 'resolved' | 'closed';
   priority: string;
   urgency_level?: string;
   affected_systems?: string;
@@ -71,7 +71,15 @@ const TicketDetails = () => {
         .single();
 
       if (error) throw error;
-      setTicket(data);
+      
+      // Transform the data to match our interface
+      const transformedTicket: EnhancedTicket = {
+        ...data,
+        attachments: Array.isArray(data.attachments) ? data.attachments : [],
+        status: data.status as 'open' | 'in_progress' | 'resolved' | 'closed'
+      };
+      
+      setTicket(transformedTicket);
     } catch (error) {
       console.error('Error fetching ticket:', error);
       toast({

@@ -6,6 +6,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useToast } from '@/components/ui/use-toast';
 import { Bot, Send, Loader, RefreshCw } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
 
 interface TicketAIAssistantProps {
   ticket: {
@@ -62,22 +63,14 @@ const TicketAIAssistant: React.FC<TicketAIAssistantProps> = ({ ticket }) => {
         Additional Info: ${ticket.additional_info || 'Not specified'}
       `;
 
-      const response = await fetch('/api/ai-ticket-assistant', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
+      const { data, error } = await supabase.functions.invoke('ai-ticket-assistant', {
+        body: {
           action: 'summarize',
           ticketContext,
-        }),
+        },
       });
 
-      const data = await response.json();
-      
-      if (data.error) {
-        throw new Error(data.error);
-      }
+      if (error) throw error;
 
       const summaryMessage: ChatMessage = {
         id: Date.now().toString(),
@@ -134,24 +127,16 @@ const TicketAIAssistant: React.FC<TicketAIAssistantProps> = ({ ticket }) => {
         content: msg.content
       }));
 
-      const response = await fetch('/api/ai-ticket-assistant', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
+      const { data, error } = await supabase.functions.invoke('ai-ticket-assistant', {
+        body: {
           action: 'chat',
           ticketContext,
           userMessage: userMessage,
           conversationHistory,
-        }),
+        },
       });
 
-      const data = await response.json();
-      
-      if (data.error) {
-        throw new Error(data.error);
-      }
+      if (error) throw error;
 
       const assistantMessage: ChatMessage = {
         id: (Date.now() + 1).toString(),
