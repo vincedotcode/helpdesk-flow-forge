@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -26,11 +27,13 @@ interface EnhancedTicket {
   attachments?: any[];
   created_at: string;
   created_by: {
+    id: string;
     first_name: string;
     last_name: string;
     email: string;
   };
   assigned_to?: {
+    id: string;
     first_name: string;
     last_name: string;
     role: string;
@@ -38,6 +41,7 @@ interface EnhancedTicket {
   departments?: {
     name: string;
   };
+  department_id?: string;
 }
 
 const TicketDetails = () => {
@@ -47,12 +51,35 @@ const TicketDetails = () => {
   const { toast } = useToast();
   const [ticket, setTicket] = useState<EnhancedTicket | null>(null);
   const [loading, setLoading] = useState(true);
+  const [accessDenied, setAccessDenied] = useState(false);
 
   useEffect(() => {
     if (ticketId) {
       fetchTicket();
     }
   }, [ticketId]);
+
+  const checkTicketAccess = (ticketData: any): boolean => {
+    if (!user) return false;
+
+    // Super admin can access all tickets
+    if (user.role === 'super_admin') return true;
+
+    // Creator can access their own tickets
+    if (ticketData.created_by.id === user.id) return true;
+
+    // Assigned user can access tickets assigned to them
+    if (ticketData.assigned_to?.id === user.id) return true;
+
+    // Department admin can access tickets in their department
+    if (user.role === 'department_admin' && 
+        user.department_id && 
+        ticketData.department_id === user.department_id) {
+      return true;
+    }
+
+    return false;
+  };
 
   const fetchTicket = async () => {
     if (!ticketId) return;
@@ -62,14 +89,21 @@ const TicketDetails = () => {
         .from('tickets')
         .select(`
           *,
-          created_by:users!tickets_created_by_fkey(first_name, last_name, email),
-          assigned_to:users!tickets_assigned_to_fkey(first_name, last_name, role),
+          created_by:users!tickets_created_by_fkey(id, first_name, last_name, email),
+          assigned_to:users!tickets_assigned_to_fkey(id, first_name, last_name, role),
           departments(name)
         `)
         .eq('id', ticketId)
         .single();
 
       if (error) throw error;
+      
+      // Check if user has access to this ticket
+      if (!checkTicketAccess(data)) {
+        setAccessDenied(true);
+        setLoading(false);
+        return;
+      }
       
       // Transform the data to match our interface
       const transformedTicket: EnhancedTicket = {
@@ -153,6 +187,25 @@ const TicketDetails = () => {
     );
   }
 
+  if (accessDenied) {
+    return (
+      <div className="container mx-auto p-6">
+        <Card>
+          <CardContent className="pt-6">
+            <div className="text-center">
+              <h2 className="text-xl font-semibold mb-2">Access Denied</h2>
+              <p className="text-gray-600 mb-4">You don't have permission to view this ticket.</p>
+              <Button onClick={() => navigate('/dashboard')}>
+                <ArrowLeft className="w-4 h-4 mr-2" />
+                Back to Dashboard
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   if (!ticket) {
     return (
       <div className="container mx-auto p-6">
@@ -160,7 +213,7 @@ const TicketDetails = () => {
           <CardContent className="pt-6">
             <div className="text-center">
               <h2 className="text-xl font-semibold mb-2">Ticket Not Found</h2>
-              <p className="text-gray-600 mb-4">The ticket you're looking for doesn't exist or you don't have permission to view it.</p>
+              <p className="text-gray-600 mb-4">The ticket you're looking for doesn't exist.</p>
               <Button onClick={() => navigate('/dashboard')}>
                 <ArrowLeft className="w-4 h-4 mr-2" />
                 Back to Dashboard
@@ -193,7 +246,7 @@ const TicketDetails = () => {
           />
         </div>
 
-        {/* AI Assistant sidebar */}
+        {/* AI Assistant sidebar - only for department admins and technicians */}
         {showAIAssistant() && (
           <div className="lg:col-span-1">
             <TicketAIAssistant ticket={ticket} />

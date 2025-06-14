@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -102,14 +103,18 @@ const TicketManagement = () => {
         `)
         .order('created_at', { ascending: false });
 
-      // Filter tickets based on user role
+      // Implement strict ticket visibility based on user role
       if (user?.role === 'end_user') {
+        // End users can only see tickets they created
         query = query.eq('created_by', user.id);
-      } else if (user?.role === 'department_technician' && user.department_id) {
-        query = query.or(`assigned_to.eq.${user.id},department_id.eq.${user.department_id}`);
+      } else if (user?.role === 'department_technician') {
+        // Department technicians can only see tickets assigned specifically to them
+        query = query.eq('assigned_to', user.id);
       } else if (user?.role === 'department_admin' && user.department_id) {
+        // Department admins can see tickets in their department
         query = query.eq('department_id', user.department_id);
       }
+      // Super admins can see all tickets (no additional filtering)
 
       const { data, error } = await query;
       
@@ -341,7 +346,7 @@ const TicketManagement = () => {
   };
 
   const canUpdateStatus = (ticket: Ticket) => {
-    return user?.role === 'department_technician' && ticket.assigned_to?.first_name;
+    return user?.role === 'department_technician' && !!ticket.assigned_to?.first_name;
   };
 
   const showChatButton = (ticket: Ticket) => {
@@ -363,7 +368,9 @@ const TicketManagement = () => {
               ? 'View and create your support tickets'
               : user?.role === 'department_admin'
               ? 'Manage department tickets and assign to technicians'
-              : 'Manage assigned tickets and update status'
+              : user?.role === 'department_technician'
+              ? 'Manage your assigned tickets and update status'
+              : 'Manage all tickets'
             }
           </CardDescription>
         </div>
