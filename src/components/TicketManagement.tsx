@@ -9,7 +9,7 @@ import { useToast } from '@/components/ui/use-toast';
 import { Plus } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import DetailedTicketForm from './DetailedTicketForm';
-import TicketCard from './TicketCard';
+import TicketTable from './TicketTable';
 import TicketAssignmentDialog from './TicketAssignmentDialog';
 import { useTicketManagement } from '@/hooks/useTicketManagement';
 import { Ticket, TicketStatus } from '@/types/ticket';
@@ -133,22 +133,12 @@ const TicketManagement = () => {
         </Dialog>
       </CardHeader>
       <CardContent>
-        <div className="space-y-4">
-          {tickets.map((ticket) => (
-            <TicketCard
-              key={ticket.id}
-              ticket={ticket}
-              onViewDetails={openViewDialog}
-              onAssign={openAssignDialog}
-              onStatusUpdate={handleStatusUpdate}
-            />
-          ))}
-        </div>
-        {tickets.length === 0 && (
-          <div className="text-center py-8">
-            <p className="text-gray-500">No tickets found</p>
-          </div>
-        )}
+        <TicketTable
+          tickets={tickets}
+          onViewDetails={openViewDialog}
+          onAssign={openAssignDialog}
+          onStatusUpdate={handleStatusUpdate}
+        />
       </CardContent>
 
       <TicketAssignmentDialog
