@@ -15,6 +15,7 @@ import {
 } from '@/components/ui/sidebar';
 import { Button } from '@/components/ui/button';
 import { ThemeToggle } from '@/components/ThemeToggle';
+import NotificationBell from '@/components/NotificationBell';
 import { 
   LayoutDashboard, 
   Users, 
@@ -79,9 +80,12 @@ export function AppSidebar({ activeTab, onTabChange }: AppSidebarProps) {
     <Sidebar>
       <SidebarHeader className="border-b border-sidebar-border">
         <div className="flex flex-col gap-2 p-2">
-          <h2 className="text-lg font-semibold text-sidebar-foreground">
-            Helpdesk Pro
-          </h2>
+          <div className="flex items-center justify-between">
+            <h2 className="text-lg font-semibold text-sidebar-foreground">
+              Helpdesk Pro
+            </h2>
+            <NotificationBell />
+          </div>
           <div className="text-sm text-sidebar-foreground/70">
             {user?.first_name} {user?.last_name}
           </div>
