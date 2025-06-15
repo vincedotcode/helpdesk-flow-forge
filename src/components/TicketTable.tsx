@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
@@ -54,13 +53,13 @@ const TicketTable: React.FC<TicketTableProps> = ({
 
   const canAssignTicket = (ticket: Ticket) => {
     if (user?.role === 'super_admin') return true;
-    if (user?.role === 'department_admin' && user.department_id === ticket.department_id) return true;
+    if (user?.role === 'department_admin') return true;
     return false;
   };
 
   const canUpdateStatus = (ticket: Ticket) => {
     if (user?.role === 'super_admin') return true;
-    if (user?.role === 'department_admin' && user.department_id === ticket.department_id) return true;
+    if (user?.role === 'department_admin') return true;
     if (user?.role === 'department_technician' && ticket.assigned_to?.id === user.id) return true;
     return false;
   };
