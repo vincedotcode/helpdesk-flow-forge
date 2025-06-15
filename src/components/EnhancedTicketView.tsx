@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -7,7 +6,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Separator } from '@/components/ui/separator';
 import { supabase } from '@/integrations/supabase/client';
 import TicketChat from './TicketChat';
-import { MessageSquare, Paperclip, Calendar, User, Building } from 'lucide-react';
+import { MessageSquare, Paperclip, Calendar, User, Building, Download, FileImage, FileText } from 'lucide-react';
 
 interface EnhancedTicket {
   id: string;
@@ -79,11 +78,26 @@ const EnhancedTicketView: React.FC<EnhancedTicketViewProps> = ({
     }
   };
 
+  const getFileIcon = (fileName: string) => {
+    const extension = fileName.toLowerCase().split('.').pop();
+    if (['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'].includes(extension || '')) {
+      return <FileImage className="w-4 h-4 text-blue-500" />;
+    } else if (extension === 'pdf') {
+      return <FileText className="w-4 h-4 text-red-500" />;
+    }
+    return <Paperclip className="w-4 h-4 text-gray-400" />;
+  };
+
   const downloadAttachment = async (attachment: any) => {
     try {
-      const { data } = await supabase.storage
+      const { data, error } = await supabase.storage
         .from('ticket-attachments')
         .download(attachment.path);
+      
+      if (error) {
+        console.error('Error downloading file:', error);
+        return;
+      }
       
       if (data) {
         const url = URL.createObjectURL(data);
@@ -225,20 +239,31 @@ const EnhancedTicketView: React.FC<EnhancedTicketViewProps> = ({
             <Separator />
             <div>
               <h3 className="font-semibold mb-3">Attachments</h3>
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 {ticket.attachments.map((attachment, index) => (
                   <div
                     key={index}
-                    className="border rounded-lg p-3 hover:bg-gray-50 cursor-pointer transition-colors"
-                    onClick={() => downloadAttachment(attachment)}
+                    className="border rounded-lg p-3 hover:bg-gray-50 transition-colors"
                   >
-                    <div className="flex items-center space-x-2">
-                      <Paperclip className="w-4 h-4 text-gray-400" />
-                      <span className="text-sm truncate">{attachment.name}</span>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-2 flex-1 min-w-0">
+                        {getFileIcon(attachment.name)}
+                        <div className="flex-1 min-w-0">
+                          <span className="text-sm font-medium truncate block">{attachment.name}</span>
+                          <p className="text-xs text-gray-500">
+                            {(attachment.size / 1024 / 1024).toFixed(2)} MB
+                          </p>
+                        </div>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => downloadAttachment(attachment)}
+                        className="flex-shrink-0 ml-2"
+                      >
+                        <Download className="w-4 h-4" />
+                      </Button>
                     </div>
-                    <p className="text-xs text-gray-500 mt-1">
-                      {(attachment.size / 1024 / 1024).toFixed(2)} MB
-                    </p>
                   </div>
                 ))}
               </div>
