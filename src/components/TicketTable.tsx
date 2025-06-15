@@ -52,9 +52,8 @@ const TicketTable: React.FC<TicketTableProps> = ({
   };
 
   const canAssignTicket = (ticket: Ticket) => {
-    if (user?.role === 'super_admin') return true;
-    if (user?.role === 'department_admin') return true;
-    return false;
+    // Only department admins can assign tickets
+    return user?.role === 'department_admin';
   };
 
   const canUpdateStatus = (ticket: Ticket) => {
@@ -248,7 +247,7 @@ const TicketTable: React.FC<TicketTableProps> = ({
           </TableHeader>
           <TableBody>
             {paginatedTickets.map((ticket) => (
-              <TableRow key={ticket.id} className="hover:bg-gray-50">
+              <TableRow key={ticket.id}>
                 <TableCell className="font-medium">
                   <div className="max-w-xs">
                     <div className="font-semibold truncate">{ticket.title}</div>
