@@ -33,6 +33,104 @@ export type Database = {
         }
         Relationships: []
       }
+      knowledge_articles: {
+        Row: {
+          content: string
+          created_at: string
+          created_by: string
+          id: string
+          is_active: boolean
+          pdf_filename: string | null
+          pdf_url: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          created_by: string
+          id?: string
+          is_active?: boolean
+          pdf_filename?: string | null
+          pdf_url?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          created_by?: string
+          id?: string
+          is_active?: boolean
+          pdf_filename?: string | null
+          pdf_url?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      knowledge_chat_messages: {
+        Row: {
+          created_at: string
+          id: string
+          message: string
+          message_type: string
+          response: string | null
+          session_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          message: string
+          message_type?: string
+          response?: string | null
+          session_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          message?: string
+          message_type?: string
+          response?: string | null
+          session_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "knowledge_chat_messages_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "knowledge_chat_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      knowledge_chat_sessions: {
+        Row: {
+          created_at: string
+          id: string
+          title: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          title?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          title?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       notifications: {
         Row: {
           created_at: string

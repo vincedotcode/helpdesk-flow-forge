@@ -23,7 +23,9 @@ import {
   Ticket, 
   Settings, 
   LogOut,
-  BarChart3
+  BarChart3,
+  BookOpen,
+  MessageCircle
 } from 'lucide-react';
 
 interface AppSidebarProps {
@@ -36,6 +38,7 @@ export function AppSidebar({ activeTab, onTabChange }: AppSidebarProps) {
 
   const canManageUsers = user?.role === 'super_admin' || user?.role === 'department_admin';
   const canManageDepartments = user?.role === 'super_admin';
+  const canManageKnowledge = user?.role === 'super_admin';
 
   const menuItems = [
     {
@@ -55,6 +58,18 @@ export function AppSidebar({ activeTab, onTabChange }: AppSidebarProps) {
       icon: Ticket,
       value: 'tickets',
       show: true,
+    },
+    {
+      title: 'AI Assistant',
+      icon: MessageCircle,
+      value: 'knowledge-chat',
+      show: true,
+    },
+    {
+      title: 'Knowledge Base',
+      icon: BookOpen,
+      value: 'knowledge',
+      show: canManageKnowledge,
     },
     {
       title: 'Departments',
