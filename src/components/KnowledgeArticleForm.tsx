@@ -53,6 +53,7 @@ const KnowledgeArticleForm: React.FC<KnowledgeArticleFormProps> = ({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    console.log('Submitting form with data:', formData);
     const success = await onSubmit(formData.title, formData.content);
     if (success) {
       setFormData({ title: '', content: '' });
@@ -61,14 +62,22 @@ const KnowledgeArticleForm: React.FC<KnowledgeArticleFormProps> = ({
   };
 
   const handleCancel = () => {
+    console.log('Canceling form');
     setFormData({ title: '', content: '' });
     onCancel();
+  };
+
+  const handleOpenDialog = () => {
+    if (!editingArticle) {
+      setFormData({ title: '', content: '' });
+    }
+    setIsDialogOpen(true);
   };
 
   return (
     <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
       <DialogTrigger asChild>
-        <Button onClick={handleCancel}>
+        <Button onClick={handleOpenDialog}>
           <Plus className="w-4 h-4 mr-2" />
           Add Article
         </Button>

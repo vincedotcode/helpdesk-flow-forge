@@ -19,6 +19,7 @@ export const useKnowledgeManagement = () => {
   const [isLoading, setIsLoading] = useState(false);
 
   const loadArticles = async () => {
+    console.log('Loading articles...');
     const { data, error } = await supabase
       .from('knowledge_articles')
       .select('*')
@@ -34,6 +35,7 @@ export const useKnowledgeManagement = () => {
       return;
     }
 
+    console.log('Loaded articles:', data);
     setArticles(data || []);
   };
 
@@ -48,19 +50,25 @@ export const useKnowledgeManagement = () => {
     }
 
     setIsLoading(true);
+    console.log('Creating article with user:', user.id);
 
     try {
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('knowledge_articles')
         .insert({
           title: title.trim(),
           content: content.trim(),
           created_by: user.id,
           is_active: true
-        });
+        })
+        .select();
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error creating article:', error);
+        throw error;
+      }
 
+      console.log('Article created successfully:', data);
       toast({
         title: "Success",
         description: "Knowledge article created successfully.",
@@ -92,6 +100,7 @@ export const useKnowledgeManagement = () => {
     }
 
     setIsLoading(true);
+    console.log('Updating article:', articleId);
 
     try {
       const { error } = await supabase
@@ -99,12 +108,14 @@ export const useKnowledgeManagement = () => {
         .update({
           title: title.trim(),
           content: content.trim(),
-          created_by: user.id,
-          is_active: true
+          updated_at: new Date().toISOString()
         })
         .eq('id', articleId);
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error updating article:', error);
+        throw error;
+      }
 
       toast({
         title: "Success",
@@ -127,6 +138,7 @@ export const useKnowledgeManagement = () => {
   };
 
   const toggleArticleStatus = async (articleId: string, currentStatus: boolean) => {
+    console.log('Toggling article status:', articleId, currentStatus);
     const { error } = await supabase
       .from('knowledge_articles')
       .update({ is_active: !currentStatus })
@@ -153,6 +165,7 @@ export const useKnowledgeManagement = () => {
   const deleteArticle = async (articleId: string) => {
     if (!confirm('Are you sure you want to delete this article?')) return;
 
+    console.log('Deleting article:', articleId);
     const { error } = await supabase
       .from('knowledge_articles')
       .delete()

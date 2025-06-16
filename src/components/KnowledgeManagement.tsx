@@ -29,6 +29,7 @@ const KnowledgeManagement: React.FC = () => {
   } = useKnowledgeManagement();
 
   const handleSubmit = async (title: string, content: string) => {
+    console.log('handleSubmit called with:', { title, content, editingArticle });
     if (editingArticle) {
       return await updateArticle(editingArticle.id, title, content);
     } else {
@@ -37,11 +38,13 @@ const KnowledgeManagement: React.FC = () => {
   };
 
   const handleEdit = (article: KnowledgeArticle) => {
+    console.log('handleEdit called with:', article);
     setEditingArticle(article);
     setIsDialogOpen(true);
   };
 
   const handleCancel = () => {
+    console.log('handleCancel called');
     setEditingArticle(null);
     setIsDialogOpen(false);
   };
