@@ -10,15 +10,13 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';
-import { Upload, Edit, Trash2, FileText, Plus } from 'lucide-react';
+import { Edit, Trash2, FileText, Plus } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 interface KnowledgeArticle {
   id: string;
   title: string;
   content: string;
-  pdf_url?: string;
-  pdf_filename?: string;
   created_at: string;
   is_active: boolean;
 }
@@ -32,8 +30,7 @@ const KnowledgeManagement: React.FC = () => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [formData, setFormData] = useState({
     title: '',
-    content: '',
-    pdfFile: null as File | null
+    content: ''
   });
 
   useEffect(() => {
@@ -63,41 +60,22 @@ const KnowledgeManagement: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!user || !formData.title.trim() || !formData.content.trim()) return;
+    if (!user || !formData.title.trim() || !formData.content.trim()) {
+      toast({
+        title: "Error",
+        description: "Please fill in both title and content.",
+        variant: "destructive",
+      });
+      return;
+    }
 
     setIsLoading(true);
 
     try {
-      let pdfUrl = null;
-      let pdfFilename = null;
-
-      // Upload PDF if provided
-      if (formData.pdfFile) {
-        const fileExt = formData.pdfFile.name.split('.').pop();
-        const fileName = `${Date.now()}.${fileExt}`;
-        
-        const { error: uploadError } = await supabase.storage
-          .from('knowledge-pdfs')
-          .upload(fileName, formData.pdfFile);
-
-        if (uploadError) {
-          throw uploadError;
-        }
-
-        const { data: urlData } = supabase.storage
-          .from('knowledge-pdfs')
-          .getPublicUrl(fileName);
-
-        pdfUrl = urlData.publicUrl;
-        pdfFilename = formData.pdfFile.name;
-      }
-
       const articleData = {
         title: formData.title.trim(),
         content: formData.content.trim(),
         created_by: user.id,
-        pdf_url: pdfUrl,
-        pdf_filename: pdfFilename,
         is_active: true
       };
 
@@ -145,8 +123,7 @@ const KnowledgeManagement: React.FC = () => {
   const resetForm = () => {
     setFormData({
       title: '',
-      content: '',
-      pdfFile: null
+      content: ''
     });
     setEditingArticle(null);
     setIsDialogOpen(false);
@@ -156,8 +133,7 @@ const KnowledgeManagement: React.FC = () => {
     setEditingArticle(article);
     setFormData({
       title: article.title,
-      content: article.content,
-      pdfFile: null
+      content: article.content
     });
     setIsDialogOpen(true);
   };
@@ -227,7 +203,7 @@ const KnowledgeManagement: React.FC = () => {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold">Knowledge Base Management</h1>
-          <p className="text-gray-600">Manage organizational knowledge articles and documentation</p>
+          <p className="text-gray-600">Manage organizational knowledge articles</p>
         </div>
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogTrigger asChild>
@@ -266,24 +242,6 @@ const KnowledgeManagement: React.FC = () => {
                 />
               </div>
 
-              <div>
-                <Label htmlFor="pdf">PDF Document (Optional)</Label>
-                <Input
-                  id="pdf"
-                  type="file"
-                  accept=".pdf"
-                  onChange={(e) => setFormData(prev => ({ 
-                    ...prev, 
-                    pdfFile: e.target.files ? e.target.files[0] : null 
-                  }))}
-                />
-                {formData.pdfFile && (
-                  <p className="text-sm text-gray-600 mt-1">
-                    Selected: {formData.pdfFile.name}
-                  </p>
-                )}
-              </div>
-
               <div className="flex gap-2 pt-4">
                 <Button type="submit" disabled={isLoading}>
                   {isLoading ? 'Saving...' : (editingArticle ? 'Update Article' : 'Create Article')}
@@ -308,7 +266,6 @@ const KnowledgeManagement: React.FC = () => {
                 <TableHead>Title</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Created</TableHead>
-                <TableHead>PDF</TableHead>
                 <TableHead>Actions</TableHead>
               </TableRow>
             </TableHeader>
@@ -334,14 +291,6 @@ const KnowledgeManagement: React.FC = () => {
                   </TableCell>
                   <TableCell>
                     {new Date(article.created_at).toLocaleDateString()}
-                  </TableCell>
-                  <TableCell>
-                    {article.pdf_filename && (
-                      <div className="flex items-center gap-1 text-sm">
-                        <FileText className="w-4 h-4" />
-                        <span className="truncate max-w-24">{article.pdf_filename}</span>
-                      </div>
-                    )}
                   </TableCell>
                   <TableCell>
                     <div className="flex gap-2">
