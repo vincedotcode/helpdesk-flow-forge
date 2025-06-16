@@ -20,23 +20,36 @@ export const useKnowledgeManagement = () => {
 
   const loadArticles = async () => {
     console.log('Loading articles...');
-    const { data, error } = await supabase
-      .from('knowledge_articles')
-      .select('*')
-      .order('created_at', { ascending: false });
+    setIsLoading(true);
+    
+    try {
+      const { data, error } = await supabase
+        .from('knowledge_articles')
+        .select('*')
+        .order('created_at', { ascending: false });
 
-    if (error) {
-      console.error('Error loading articles:', error);
+      if (error) {
+        console.error('Error loading articles:', error);
+        toast({
+          title: "Error",
+          description: "Failed to load knowledge articles.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      console.log('Loaded articles:', data);
+      setArticles(data || []);
+    } catch (error) {
+      console.error('Unexpected error loading articles:', error);
       toast({
         title: "Error",
-        description: "Failed to load knowledge articles.",
+        description: "An unexpected error occurred while loading articles.",
         variant: "destructive",
       });
-      return;
+    } finally {
+      setIsLoading(false);
     }
-
-    console.log('Loaded articles:', data);
-    setArticles(data || []);
   };
 
   const createArticle = async (title: string, content: string) => {
@@ -65,7 +78,12 @@ export const useKnowledgeManagement = () => {
 
       if (error) {
         console.error('Error creating article:', error);
-        throw error;
+        toast({
+          title: "Error",
+          description: `Failed to create knowledge article: ${error.message}`,
+          variant: "destructive",
+        });
+        return false;
       }
 
       console.log('Article created successfully:', data);
@@ -74,13 +92,13 @@ export const useKnowledgeManagement = () => {
         description: "Knowledge article created successfully.",
       });
 
-      loadArticles();
+      await loadArticles();
       return true;
     } catch (error) {
-      console.error('Error creating article:', error);
+      console.error('Unexpected error creating article:', error);
       toast({
         title: "Error",
-        description: "Failed to create knowledge article.",
+        description: "An unexpected error occurred while creating the article.",
         variant: "destructive",
       });
       return false;
@@ -114,7 +132,12 @@ export const useKnowledgeManagement = () => {
 
       if (error) {
         console.error('Error updating article:', error);
-        throw error;
+        toast({
+          title: "Error",
+          description: `Failed to update knowledge article: ${error.message}`,
+          variant: "destructive",
+        });
+        return false;
       }
 
       toast({
@@ -122,13 +145,13 @@ export const useKnowledgeManagement = () => {
         description: "Knowledge article updated successfully.",
       });
 
-      loadArticles();
+      await loadArticles();
       return true;
     } catch (error) {
-      console.error('Error updating article:', error);
+      console.error('Unexpected error updating article:', error);
       toast({
         title: "Error",
-        description: "Failed to update knowledge article.",
+        description: "An unexpected error occurred while updating the article.",
         variant: "destructive",
       });
       return false;
@@ -139,54 +162,74 @@ export const useKnowledgeManagement = () => {
 
   const toggleArticleStatus = async (articleId: string, currentStatus: boolean) => {
     console.log('Toggling article status:', articleId, currentStatus);
-    const { error } = await supabase
-      .from('knowledge_articles')
-      .update({ is_active: !currentStatus })
-      .eq('id', articleId);
+    
+    try {
+      const { error } = await supabase
+        .from('knowledge_articles')
+        .update({ is_active: !currentStatus })
+        .eq('id', articleId);
 
-    if (error) {
-      console.error('Error updating article status:', error);
+      if (error) {
+        console.error('Error updating article status:', error);
+        toast({
+          title: "Error",
+          description: `Failed to update article status: ${error.message}`,
+          variant: "destructive",
+        });
+        return;
+      }
+
+      toast({
+        title: "Success",
+        description: `Article ${!currentStatus ? 'activated' : 'deactivated'} successfully.`,
+      });
+
+      await loadArticles();
+    } catch (error) {
+      console.error('Unexpected error toggling article status:', error);
       toast({
         title: "Error",
-        description: "Failed to update article status.",
+        description: "An unexpected error occurred while updating the article status.",
         variant: "destructive",
       });
-      return;
     }
-
-    toast({
-      title: "Success",
-      description: `Article ${!currentStatus ? 'activated' : 'deactivated'} successfully.`,
-    });
-
-    loadArticles();
   };
 
   const deleteArticle = async (articleId: string) => {
     if (!confirm('Are you sure you want to delete this article?')) return;
 
     console.log('Deleting article:', articleId);
-    const { error } = await supabase
-      .from('knowledge_articles')
-      .delete()
-      .eq('id', articleId);
+    
+    try {
+      const { error } = await supabase
+        .from('knowledge_articles')
+        .delete()
+        .eq('id', articleId);
 
-    if (error) {
-      console.error('Error deleting article:', error);
+      if (error) {
+        console.error('Error deleting article:', error);
+        toast({
+          title: "Error",
+          description: `Failed to delete article: ${error.message}`,
+          variant: "destructive",
+        });
+        return;
+      }
+
+      toast({
+        title: "Success",
+        description: "Article deleted successfully.",
+      });
+
+      await loadArticles();
+    } catch (error) {
+      console.error('Unexpected error deleting article:', error);
       toast({
         title: "Error",
-        description: "Failed to delete article.",
+        description: "An unexpected error occurred while deleting the article.",
         variant: "destructive",
       });
-      return;
     }
-
-    toast({
-      title: "Success",
-      description: "Article deleted successfully.",
-    });
-
-    loadArticles();
   };
 
   useEffect(() => {
