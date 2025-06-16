@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -59,12 +58,13 @@ const KnowledgeBaseChat: React.FC = () => {
   }, [activeSessionId]);
 
   const formatAIResponse = (response: string) => {
-    // Remove markdown formatting
+    // Remove markdown formatting and clean up the response
     return response
       .replace(/\*\*(.*?)\*\*/g, '$1') // Remove bold
       .replace(/\*(.*?)\*/g, '$1') // Remove italics
       .replace(/- \*\*(.*?)\*\*:/g, '• $1:') // Convert bullet points
       .replace(/- /g, '• ') // Convert dashes to bullets
+      .replace(/^-\s*/gm, '• ') // Convert leading dashes to bullets
       .trim();
   };
 
@@ -274,11 +274,11 @@ The user indicated that their problem was not resolved and requested further ass
 
   if (!user) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <Card className="w-full max-w-md">
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <Card className="w-full max-w-md mx-auto">
           <CardContent className="p-8 text-center">
-            <Bot className="w-12 h-12 mx-auto mb-4 text-gray-400" />
-            <p className="text-gray-600">Please log in to access the knowledge base.</p>
+            <Bot className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
+            <p className="text-muted-foreground">Please log in to access the knowledge base.</p>
           </CardContent>
         </Card>
       </div>
@@ -286,199 +286,197 @@ The user indicated that their problem was not resolved and requested further ass
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="max-w-7xl mx-auto p-6">
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 h-[calc(100vh-3rem)]">
-          
-          {/* Sessions Sidebar */}
-          <div className="lg:col-span-1">
-            <Card className="h-full">
-              <CardHeader className="pb-3">
-                <div className="flex items-center justify-between">
-                  <CardTitle className="text-lg font-medium">Chat History</CardTitle>
+    <div className="container mx-auto max-w-7xl p-4 h-full">
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 h-[calc(100vh-8rem)]">
+        
+        {/* Sessions Sidebar */}
+        <div className="lg:col-span-1 order-2 lg:order-1">
+          <Card className="h-full flex flex-col">
+            <CardHeader className="pb-3 flex-shrink-0">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-lg font-medium">Chat History</CardTitle>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={createNewSession}
+                  className="h-8 w-8 p-0"
+                >
+                  <Plus className="w-4 h-4" />
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent className="p-0 flex-1 overflow-hidden">
+              <ScrollArea className="h-full">
+                <div className="p-4 space-y-2">
+                  {sessions.map((session) => (
+                    <div
+                      key={session.id}
+                      className={`p-3 rounded-lg cursor-pointer transition-colors text-sm border ${
+                        activeSessionId === session.id 
+                          ? 'bg-primary/10 border-primary/20' 
+                          : 'hover:bg-muted/50 border-transparent'
+                      }`}
+                      onClick={() => setActiveSessionId(session.id)}
+                    >
+                      <div className="font-medium text-foreground truncate">{session.title}</div>
+                      <div className="text-xs text-muted-foreground mt-1">
+                        {new Date(session.created_at).toLocaleDateString()}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </ScrollArea>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Chat Interface */}
+        <div className="lg:col-span-3 order-1 lg:order-2">
+          <Card className="h-full flex flex-col">
+            <CardHeader className="pb-4 border-b flex-shrink-0">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+                  <Bot className="w-5 h-5 text-primary" />
+                </div>
+                <div>
+                  <CardTitle className="text-xl font-semibold">AI Knowledge Assistant</CardTitle>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Ask me anything about the organization. I'm here to help!
+                  </p>
+                </div>
+              </div>
+            </CardHeader>
+            
+            <CardContent className="flex-1 flex flex-col p-0 overflow-hidden">
+              <ScrollArea className="flex-1">
+                <div className="p-6 space-y-6 min-h-full">
+                  {messages.length === 0 && (
+                    <div className="text-center py-12">
+                      <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4">
+                        <Bot className="w-8 h-8 text-primary" />
+                      </div>
+                      <h3 className="text-lg font-medium text-foreground mb-2">Welcome to AI Assistant</h3>
+                      <p className="text-muted-foreground max-w-md mx-auto">
+                        I can help you find information about policies, procedures, or answer any questions you have about the organization.
+                      </p>
+                    </div>
+                  )}
+                  
+                  {messages.map((msg) => (
+                    <div key={msg.id} className="space-y-4">
+                      {/* User Message */}
+                      <div className="flex gap-3 justify-end">
+                        <div className="max-w-[85%] sm:max-w-[70%]">
+                          <div className="bg-primary text-primary-foreground rounded-2xl rounded-br-md px-4 py-3">
+                            <p className="text-sm leading-relaxed">{msg.message}</p>
+                          </div>
+                        </div>
+                        <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center flex-shrink-0">
+                          <User className="w-4 h-4 text-primary-foreground" />
+                        </div>
+                      </div>
+                      
+                      {/* AI Response */}
+                      {msg.response && (
+                        <div className="flex gap-3">
+                          <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center flex-shrink-0">
+                            <Bot className="w-4 h-4 text-muted-foreground" />
+                          </div>
+                          <div className="flex-1 max-w-[85%] sm:max-w-[70%]">
+                            <div className="bg-card border rounded-2xl rounded-bl-md px-4 py-3 shadow-sm">
+                              <p className="text-sm leading-relaxed text-foreground whitespace-pre-line">
+                                {formatAIResponse(msg.response)}
+                              </p>
+                              
+                              {msg.ticketCreated && (
+                                <div className="mt-3 pt-3 border-t">
+                                  <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+                                    <Ticket className="w-3 h-3 mr-1" />
+                                    Ticket #{msg.ticketId} Created
+                                  </Badge>
+                                </div>
+                              )}
+                              
+                              {msg.showResolutionCheck && !msg.ticketCreated && (
+                                <div className="mt-4 pt-3 border-t space-y-3">
+                                  <p className="text-sm font-medium text-foreground">
+                                    Did this help resolve your question?
+                                  </p>
+                                  <div className="flex flex-wrap gap-2">
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      onClick={() => markAsResolved(msg.id)}
+                                      className="text-green-600 border-green-200 hover:bg-green-50"
+                                    >
+                                      Yes, resolved
+                                    </Button>
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      onClick={() => createTicketFromChat(msg.id)}
+                                      disabled={isCreatingTicket}
+                                      className="text-blue-600 border-blue-200 hover:bg-blue-50"
+                                    >
+                                      <Ticket className="w-3 h-3 mr-1" />
+                                      Create Ticket
+                                    </Button>
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                  
+                  {isLoading && (
+                    <div className="flex gap-3">
+                      <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center flex-shrink-0">
+                        <Bot className="w-4 h-4 text-muted-foreground" />
+                      </div>
+                      <div className="flex-1 max-w-[85%] sm:max-w-[70%]">
+                        <div className="bg-card border rounded-2xl rounded-bl-md px-4 py-3 shadow-sm">
+                          <div className="flex items-center gap-2">
+                            <div className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce" />
+                            <div className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce" style={{ animationDelay: '0.1s' }} />
+                            <div className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce" style={{ animationDelay: '0.2s' }} />
+                            <span className="text-sm text-muted-foreground ml-2">Thinking...</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+                <div ref={messagesEndRef} />
+              </ScrollArea>
+              
+              {/* Message Input */}
+              <div className="border-t p-4 flex-shrink-0">
+                <div className="flex gap-2 items-end">
+                  <div className="flex-1">
+                    <Input
+                      value={currentMessage}
+                      onChange={(e) => setCurrentMessage(e.target.value)}
+                      onKeyPress={handleKeyPress}
+                      placeholder="Ask me anything..."
+                      disabled={isLoading || !activeSessionId}
+                      className="min-h-[44px] rounded-xl border-input focus:border-ring resize-none"
+                    />
+                  </div>
                   <Button 
-                    variant="outline" 
-                    size="sm" 
-                    onClick={createNewSession}
-                    className="h-8 w-8 p-0"
+                    onClick={sendMessage} 
+                    disabled={!currentMessage.trim() || isLoading || !activeSessionId}
+                    size="lg"
+                    className="h-11 w-11 rounded-xl p-0 flex-shrink-0"
                   >
-                    <Plus className="w-4 h-4" />
+                    <Send className="w-4 h-4" />
                   </Button>
                 </div>
-              </CardHeader>
-              <CardContent className="p-0">
-                <ScrollArea className="h-[calc(100vh-12rem)]">
-                  <div className="p-4 space-y-2">
-                    {sessions.map((session) => (
-                      <div
-                        key={session.id}
-                        className={`p-3 rounded-lg cursor-pointer transition-colors text-sm ${
-                          activeSessionId === session.id 
-                            ? 'bg-blue-50 border border-blue-200' 
-                            : 'hover:bg-gray-50 border border-transparent'
-                        }`}
-                        onClick={() => setActiveSessionId(session.id)}
-                      >
-                        <div className="font-medium text-gray-900 truncate">{session.title}</div>
-                        <div className="text-xs text-gray-500 mt-1">
-                          {new Date(session.created_at).toLocaleDateString()}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </ScrollArea>
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Chat Interface */}
-          <div className="lg:col-span-3">
-            <Card className="h-full flex flex-col">
-              <CardHeader className="pb-4 border-b">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center">
-                    <Bot className="w-5 h-5 text-blue-600" />
-                  </div>
-                  <div>
-                    <CardTitle className="text-xl font-semibold">AI Knowledge Assistant</CardTitle>
-                    <p className="text-sm text-gray-600 mt-1">
-                      Ask me anything about the organization. I'm here to help!
-                    </p>
-                  </div>
-                </div>
-              </CardHeader>
-              
-              <CardContent className="flex-1 flex flex-col p-0">
-                <ScrollArea className="flex-1">
-                  <div className="p-6 space-y-6">
-                    {messages.length === 0 && (
-                      <div className="text-center py-12">
-                        <div className="w-16 h-16 rounded-full bg-blue-50 flex items-center justify-center mx-auto mb-4">
-                          <Bot className="w-8 h-8 text-blue-600" />
-                        </div>
-                        <h3 className="text-lg font-medium text-gray-900 mb-2">Welcome to AI Assistant</h3>
-                        <p className="text-gray-600 max-w-md mx-auto">
-                          I can help you find information about policies, procedures, or answer any questions you have about the organization.
-                        </p>
-                      </div>
-                    )}
-                    
-                    {messages.map((msg) => (
-                      <div key={msg.id} className="space-y-4">
-                        {/* User Message */}
-                        <div className="flex gap-4 justify-end">
-                          <div className="max-w-[80%]">
-                            <div className="bg-blue-600 text-white rounded-2xl rounded-br-md px-4 py-3">
-                              <p className="text-sm leading-relaxed">{msg.message}</p>
-                            </div>
-                          </div>
-                          <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center flex-shrink-0">
-                            <User className="w-4 h-4 text-white" />
-                          </div>
-                        </div>
-                        
-                        {/* AI Response */}
-                        {msg.response && (
-                          <div className="flex gap-4">
-                            <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center flex-shrink-0">
-                              <Bot className="w-4 h-4 text-gray-600" />
-                            </div>
-                            <div className="flex-1 max-w-[80%]">
-                              <div className="bg-white border rounded-2xl rounded-bl-md px-4 py-3 shadow-sm">
-                                <p className="text-sm leading-relaxed text-gray-800 whitespace-pre-line">
-                                  {formatAIResponse(msg.response)}
-                                </p>
-                                
-                                {msg.ticketCreated && (
-                                  <div className="mt-3 pt-3 border-t">
-                                    <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
-                                      <Ticket className="w-3 h-3 mr-1" />
-                                      Ticket #{msg.ticketId} Created
-                                    </Badge>
-                                  </div>
-                                )}
-                                
-                                {msg.showResolutionCheck && !msg.ticketCreated && (
-                                  <div className="mt-4 pt-3 border-t space-y-3">
-                                    <p className="text-sm font-medium text-gray-700">
-                                      Did this help resolve your question?
-                                    </p>
-                                    <div className="flex gap-2">
-                                      <Button
-                                        size="sm"
-                                        variant="outline"
-                                        onClick={() => markAsResolved(msg.id)}
-                                        className="text-green-600 border-green-200 hover:bg-green-50"
-                                      >
-                                        Yes, resolved
-                                      </Button>
-                                      <Button
-                                        size="sm"
-                                        variant="outline"
-                                        onClick={() => createTicketFromChat(msg.id)}
-                                        disabled={isCreatingTicket}
-                                        className="text-blue-600 border-blue-200 hover:bg-blue-50"
-                                      >
-                                        <Ticket className="w-3 h-3 mr-1" />
-                                        Create Ticket
-                                      </Button>
-                                    </div>
-                                  </div>
-                                )}
-                              </div>
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    ))}
-                    
-                    {isLoading && (
-                      <div className="flex gap-4">
-                        <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center flex-shrink-0">
-                          <Bot className="w-4 h-4 text-gray-600" />
-                        </div>
-                        <div className="flex-1 max-w-[80%]">
-                          <div className="bg-white border rounded-2xl rounded-bl-md px-4 py-3 shadow-sm">
-                            <div className="flex items-center gap-2">
-                              <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" />
-                              <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }} />
-                              <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }} />
-                              <span className="text-sm text-gray-600 ml-2">Thinking...</span>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                  <div ref={messagesEndRef} />
-                </ScrollArea>
-                
-                {/* Message Input */}
-                <div className="border-t p-4">
-                  <div className="flex gap-3 items-end">
-                    <div className="flex-1">
-                      <Input
-                        value={currentMessage}
-                        onChange={(e) => setCurrentMessage(e.target.value)}
-                        onKeyPress={handleKeyPress}
-                        placeholder="Ask me anything..."
-                        disabled={isLoading || !activeSessionId}
-                        className="min-h-[44px] rounded-xl border-gray-200 focus:border-blue-300 focus:ring-blue-100"
-                      />
-                    </div>
-                    <Button 
-                      onClick={sendMessage} 
-                      disabled={!currentMessage.trim() || isLoading || !activeSessionId}
-                      size="lg"
-                      className="h-11 w-11 rounded-xl p-0"
-                    >
-                      <Send className="w-4 h-4" />
-                    </Button>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
+              </div>
+            </CardContent>
+          </Card>
         </div>
       </div>
     </div>
