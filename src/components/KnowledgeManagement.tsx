@@ -1,17 +1,10 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { supabase } from '@/integrations/supabase/client';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Badge } from '@/components/ui/badge';
-import { Label } from '@/components/ui/label';
-import { Edit, Trash2, FileText, Plus } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
+import KnowledgeArticleForm from '@/components/KnowledgeArticleForm';
+import KnowledgeArticleTable from '@/components/KnowledgeArticleTable';
+import { useKnowledgeManagement } from '@/hooks/useKnowledgeManagement';
 
 interface KnowledgeArticle {
   id: string;
@@ -23,169 +16,34 @@ interface KnowledgeArticle {
 
 const KnowledgeManagement: React.FC = () => {
   const { user } = useAuth();
-  const { toast } = useToast();
-  const [articles, setArticles] = useState<KnowledgeArticle[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
   const [editingArticle, setEditingArticle] = useState<KnowledgeArticle | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [formData, setFormData] = useState({
-    title: '',
-    content: ''
-  });
 
-  useEffect(() => {
-    if (user?.role === 'super_admin') {
-      loadArticles();
-    }
-  }, [user]);
+  const {
+    articles,
+    isLoading,
+    createArticle,
+    updateArticle,
+    toggleArticleStatus,
+    deleteArticle
+  } = useKnowledgeManagement();
 
-  const loadArticles = async () => {
-    const { data, error } = await supabase
-      .from('knowledge_articles')
-      .select('*')
-      .order('created_at', { ascending: false });
-
-    if (error) {
-      console.error('Error loading articles:', error);
-      toast({
-        title: "Error",
-        description: "Failed to load knowledge articles.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    setArticles(data || []);
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!user || !formData.title.trim() || !formData.content.trim()) {
-      toast({
-        title: "Error",
-        description: "Please fill in both title and content.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    setIsLoading(true);
-
-    try {
-      const articleData = {
-        title: formData.title.trim(),
-        content: formData.content.trim(),
-        created_by: user.id,
-        is_active: true
-      };
-
-      if (editingArticle) {
-        // Update existing article
-        const { error } = await supabase
-          .from('knowledge_articles')
-          .update(articleData)
-          .eq('id', editingArticle.id);
-
-        if (error) throw error;
-
-        toast({
-          title: "Success",
-          description: "Knowledge article updated successfully.",
-        });
-      } else {
-        // Create new article
-        const { error } = await supabase
-          .from('knowledge_articles')
-          .insert(articleData);
-
-        if (error) throw error;
-
-        toast({
-          title: "Success",
-          description: "Knowledge article created successfully.",
-        });
-      }
-
-      resetForm();
-      loadArticles();
-    } catch (error) {
-      console.error('Error saving article:', error);
-      toast({
-        title: "Error",
-        description: "Failed to save knowledge article.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsLoading(false);
+  const handleSubmit = async (title: string, content: string) => {
+    if (editingArticle) {
+      return await updateArticle(editingArticle.id, title, content);
+    } else {
+      return await createArticle(title, content);
     }
   };
 
-  const resetForm = () => {
-    setFormData({
-      title: '',
-      content: ''
-    });
-    setEditingArticle(null);
-    setIsDialogOpen(false);
-  };
-
-  const editArticle = (article: KnowledgeArticle) => {
+  const handleEdit = (article: KnowledgeArticle) => {
     setEditingArticle(article);
-    setFormData({
-      title: article.title,
-      content: article.content
-    });
     setIsDialogOpen(true);
   };
 
-  const toggleArticleStatus = async (articleId: string, currentStatus: boolean) => {
-    const { error } = await supabase
-      .from('knowledge_articles')
-      .update({ is_active: !currentStatus })
-      .eq('id', articleId);
-
-    if (error) {
-      console.error('Error updating article status:', error);
-      toast({
-        title: "Error",
-        description: "Failed to update article status.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    toast({
-      title: "Success",
-      description: `Article ${!currentStatus ? 'activated' : 'deactivated'} successfully.`,
-    });
-
-    loadArticles();
-  };
-
-  const deleteArticle = async (articleId: string) => {
-    if (!confirm('Are you sure you want to delete this article?')) return;
-
-    const { error } = await supabase
-      .from('knowledge_articles')
-      .delete()
-      .eq('id', articleId);
-
-    if (error) {
-      console.error('Error deleting article:', error);
-      toast({
-        title: "Error",
-        description: "Failed to delete article.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    toast({
-      title: "Success",
-      description: "Article deleted successfully.",
-    });
-
-    loadArticles();
+  const handleCancel = () => {
+    setEditingArticle(null);
+    setIsDialogOpen(false);
   };
 
   if (user?.role !== 'super_admin') {
@@ -205,54 +63,14 @@ const KnowledgeManagement: React.FC = () => {
           <h1 className="text-3xl font-bold">Knowledge Base Management</h1>
           <p className="text-gray-600">Manage organizational knowledge articles</p>
         </div>
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogTrigger asChild>
-            <Button onClick={() => resetForm()}>
-              <Plus className="w-4 h-4 mr-2" />
-              Add Article
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="max-w-2xl">
-            <DialogHeader>
-              <DialogTitle>
-                {editingArticle ? 'Edit Knowledge Article' : 'Create New Knowledge Article'}
-              </DialogTitle>
-            </DialogHeader>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div>
-                <Label htmlFor="title">Title</Label>
-                <Input
-                  id="title"
-                  value={formData.title}
-                  onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
-                  placeholder="Enter article title..."
-                  required
-                />
-              </div>
-              
-              <div>
-                <Label htmlFor="content">Content</Label>
-                <Textarea
-                  id="content"
-                  value={formData.content}
-                  onChange={(e) => setFormData(prev => ({ ...prev, content: e.target.value }))}
-                  placeholder="Enter article content..."
-                  rows={8}
-                  required
-                />
-              </div>
-
-              <div className="flex gap-2 pt-4">
-                <Button type="submit" disabled={isLoading}>
-                  {isLoading ? 'Saving...' : (editingArticle ? 'Update Article' : 'Create Article')}
-                </Button>
-                <Button type="button" variant="outline" onClick={resetForm}>
-                  Cancel
-                </Button>
-              </div>
-            </form>
-          </DialogContent>
-        </Dialog>
+        <KnowledgeArticleForm
+          editingArticle={editingArticle}
+          isDialogOpen={isDialogOpen}
+          setIsDialogOpen={setIsDialogOpen}
+          onSubmit={handleSubmit}
+          onCancel={handleCancel}
+          isLoading={isLoading}
+        />
       </div>
 
       <Card>
@@ -260,68 +78,12 @@ const KnowledgeManagement: React.FC = () => {
           <CardTitle>Knowledge Articles ({articles.length})</CardTitle>
         </CardHeader>
         <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Title</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Created</TableHead>
-                <TableHead>Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {articles.map((article) => (
-                <TableRow key={article.id}>
-                  <TableCell>
-                    <div>
-                      <div className="font-medium">{article.title}</div>
-                      <div className="text-sm text-gray-500 truncate max-w-md">
-                        {article.content.substring(0, 100)}...
-                      </div>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <Badge 
-                      variant={article.is_active ? "default" : "secondary"}
-                      className="cursor-pointer"
-                      onClick={() => toggleArticleStatus(article.id, article.is_active)}
-                    >
-                      {article.is_active ? 'Active' : 'Inactive'}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    {new Date(article.created_at).toLocaleDateString()}
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex gap-2">
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => editArticle(article)}
-                      >
-                        <Edit className="w-4 h-4" />
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => deleteArticle(article.id)}
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-          
-          {articles.length === 0 && (
-            <div className="text-center py-8 text-gray-500">
-              <FileText className="w-12 h-12 mx-auto mb-4 opacity-50" />
-              <p>No knowledge articles yet.</p>
-              <p className="text-sm">Create your first article to get started.</p>
-            </div>
-          )}
+          <KnowledgeArticleTable
+            articles={articles}
+            onEdit={handleEdit}
+            onToggleStatus={toggleArticleStatus}
+            onDelete={deleteArticle}
+          />
         </CardContent>
       </Card>
     </div>
