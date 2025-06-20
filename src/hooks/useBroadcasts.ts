@@ -44,13 +44,22 @@ export const useBroadcasts = () => {
         .from('broadcasts')
         .select(`
           *,
-          creator:users!broadcasts_created_by_fkey(first_name, last_name),
-          department:departments(name)
+          creator:created_by(first_name, last_name),
+          department:target_department_id(name)
         `)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      setBroadcasts(data || []);
+      
+      // Type the data properly to match our Broadcast interface
+      const typedBroadcasts: Broadcast[] = (data || []).map(item => ({
+        ...item,
+        target_audience: item.target_audience as Broadcast['target_audience'],
+        creator: Array.isArray(item.creator) ? item.creator[0] : item.creator,
+        department: Array.isArray(item.department) ? item.department[0] : item.department
+      }));
+      
+      setBroadcasts(typedBroadcasts);
     } catch (error) {
       console.error('Error fetching broadcasts:', error);
       toast({
