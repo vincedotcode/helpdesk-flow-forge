@@ -1,13 +1,15 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line, AreaChart, Area } from 'recharts';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
+import LoadingSpinner from './LoadingSpinner';
+import { showErrorToast, showSuccessToast } from '@/utils/toast';
 import { 
   Users, 
   Ticket, 
@@ -24,7 +26,8 @@ import {
   Target,
   Award,
   Filter,
-  Download
+  Download,
+  RefreshCw
 } from 'lucide-react';
 
 interface AnalyticsData {
@@ -76,11 +79,18 @@ const Analytics: React.FC = () => {
   const { user } = useAuth();
   const [data, setData] = useState<AnalyticsData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [timeRange, setTimeRange] = useState<'7d' | '30d' | '90d'>('30d');
+  const [refreshing, setRefreshing] = useState(false);
 
-  const fetchAnalytics = async () => {
+  const fetchAnalytics = async (showToast = false) => {
     try {
-      setLoading(true);
+      if (showToast) {
+        setRefreshing(true);
+      } else {
+        setLoading(true);
+      }
+      setError(null);
 
       // Calculate date range
       const endDate = new Date();
@@ -88,18 +98,28 @@ const Analytics: React.FC = () => {
       const days = timeRange === '7d' ? 7 : timeRange === '30d' ? 30 : 90;
       startDate.setDate(startDate.getDate() - days);
 
-      // Fetch data from multiple tables
-      const [usersRes, ticketsRes, broadcastsRes, departmentsRes] = await Promise.all([
+      // Fetch data from multiple tables with error handling
+      const [usersRes, ticketsRes, broadcastsRes, departmentsRes] = await Promise.allSettled([
         supabase.from('users').select('*, departments(name)'),
         supabase.from('tickets').select('*').gte('created_at', startDate.toISOString()),
         supabase.from('broadcasts').select('*').gte('created_at', startDate.toISOString()),
         supabase.from('departments').select('*')
       ]);
 
-      const users = usersRes.data || [];
-      const tickets = ticketsRes.data || [];
-      const broadcasts = broadcastsRes.data || [];
-      const departments = departmentsRes.data || [];
+      // Handle potential errors in data fetching
+      const users = usersRes.status === 'fulfilled' ? usersRes.value.data || [] : [];
+      const tickets = ticketsRes.status === 'fulfilled' ? ticketsRes.value.data || [] : [];
+      const broadcasts = broadcastsRes.status === 'fulfilled' ? broadcastsRes.value.data || [] : [];
+      const departments = departmentsRes.status === 'fulfilled' ? departmentsRes.value.data || [] : [];
+
+      // Check for any failed requests
+      const failedRequests = [usersRes, ticketsRes, broadcastsRes, departmentsRes]
+        .filter(result => result.status === 'rejected');
+      
+      if (failedRequests.length > 0) {
+        console.warn('Some data requests failed:', failedRequests);
+        showErrorToast('Partial Data Loading', 'Some analytics data may be incomplete due to network issues.');
+      }
 
       // Process ticket metrics
       const statusCounts = tickets.reduce((acc, ticket) => {
@@ -262,8 +282,41 @@ const Analytics: React.FC = () => {
       setData(analyticsData);
     } catch (error) {
       console.error('Error fetching analytics:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Failed to load analytics data';
+      setError(errorMessage);
+      showErrorToast('Analytics Error', errorMessage);
     } finally {
       setLoading(false);
+      setRefreshing(false);
+    }
+  };
+
+  const handleRefresh = () => {
+    fetchAnalytics(true);
+  };
+
+  const handleExport = async () => {
+    try {
+      showSuccessToast('Export Started', 'Preparing analytics data for export...');
+      
+      // Simulate export process
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      
+      // In a real implementation, you would generate and download the file
+      const dataStr = JSON.stringify(data, null, 2);
+      const dataBlob = new Blob([dataStr], { type: 'application/json' });
+      const url = URL.createObjectURL(dataBlob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `analytics-${timeRange}-${new Date().toISOString().split('T')[0]}.json`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      
+      showSuccessToast('Export Complete', 'Analytics data has been downloaded successfully.');
+    } catch (error) {
+      showErrorToast('Export Failed', 'Unable to export analytics data. Please try again.');
     }
   };
 
@@ -274,16 +327,38 @@ const Analytics: React.FC = () => {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-96">
-        <div className="text-muted-foreground">Loading analytics...</div>
+        <LoadingSpinner size="lg" text="Loading analytics dashboard..." />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="space-y-4">
+        <Alert variant="destructive">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertDescription>
+            {error}
+          </AlertDescription>
+        </Alert>
+        <div className="flex justify-center">
+          <Button onClick={() => fetchAnalytics()} variant="outline">
+            <RefreshCw className="h-4 w-4 mr-2" />
+            Retry Loading
+          </Button>
+        </div>
       </div>
     );
   }
 
   if (!data) {
     return (
-      <div className="flex items-center justify-center h-96">
-        <div className="text-muted-foreground">No data available</div>
-      </div>
+      <Alert>
+        <AlertTriangle className="h-4 w-4" />
+        <AlertDescription>
+          No analytics data available. Please check your permissions or try refreshing the page.
+        </AlertDescription>
+      </Alert>
     );
   }
 
@@ -304,15 +379,21 @@ const Analytics: React.FC = () => {
               variant={timeRange === range ? 'default' : 'outline'}
               size="sm"
               onClick={() => setTimeRange(range)}
+              disabled={refreshing}
             >
               {range === '7d' ? '7 Days' : range === '30d' ? '30 Days' : '90 Days'}
             </Button>
           ))}
-          <Button variant="outline" size="sm">
-            <Filter className="h-4 w-4 mr-2" />
-            Filter
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={handleRefresh}
+            disabled={refreshing}
+          >
+            <RefreshCw className={`h-4 w-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
+            Refresh
           </Button>
-          <Button variant="outline" size="sm">
+          <Button variant="outline" size="sm" onClick={handleExport}>
             <Download className="h-4 w-4 mr-2" />
             Export
           </Button>

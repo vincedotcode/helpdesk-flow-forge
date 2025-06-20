@@ -5,24 +5,26 @@ import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { useToast } from '@/components/ui/use-toast';
-import { Plus } from 'lucide-react';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Plus, AlertTriangle, RefreshCw } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import DetailedTicketForm from './DetailedTicketForm';
 import TicketTable from './TicketTable';
 import TicketAssignmentDialog from './TicketAssignmentDialog';
+import LoadingSpinner from './LoadingSpinner';
 import { useTicketManagement } from '@/hooks/useTicketManagement';
+import { showErrorToast, showSuccessToast, commonToasts } from '@/utils/toast';
 import { Ticket, TicketStatus } from '@/types/ticket';
 
 const TicketManagement = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
-  const { toast } = useToast();
   const {
     tickets,
     departments,
     departmentTechnicians,
     loading,
+    error,
     setLoading,
     fetchTickets,
     fetchDepartmentTechnicians,
@@ -33,6 +35,7 @@ const TicketManagement = () => {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isAssignDialogOpen, setIsAssignDialogOpen] = useState(false);
   const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null);
+  const [assignmentLoading, setAssignmentLoading] = useState(false);
 
   const [assignmentData, setAssignmentData] = useState({
     assigned_to: '',
@@ -41,15 +44,11 @@ const TicketManagement = () => {
 
   const handleAssignTicket = async () => {
     if (!selectedTicket || !assignmentData.assigned_to) {
-      toast({
-        title: "Error",
-        description: "Please select a technician to assign",
-        variant: "destructive",
-      });
+      showErrorToast('Validation Error', 'Please select a technician to assign');
       return;
     }
 
-    setLoading(true);
+    setAssignmentLoading(true);
 
     try {
       const { error } = await supabase
@@ -62,24 +61,16 @@ const TicketManagement = () => {
 
       if (error) throw error;
 
-      toast({
-        title: "Success",
-        description: "Ticket assigned successfully",
-      });
-
+      commonToasts.success.updated('Ticket assignment');
       setIsAssignDialogOpen(false);
       setSelectedTicket(null);
       setAssignmentData({ assigned_to: '', status: 'in_progress' });
-      fetchTickets();
+      await fetchTickets();
     } catch (error) {
       console.error('Error assigning ticket:', error);
-      toast({
-        title: "Error",
-        description: "Failed to assign ticket",
-        variant: "destructive",
-      });
+      showErrorToast('Assignment Failed', 'Failed to assign ticket. Please try again.');
     } finally {
-      setLoading(false);
+      setAssignmentLoading(false);
     }
   };
 
@@ -92,6 +83,41 @@ const TicketManagement = () => {
   const openViewDialog = (ticket: Ticket) => {
     navigate(`/dashboard/ticket/${ticket.id}`);
   };
+
+  const handleRetry = () => {
+    fetchTickets();
+  };
+
+  if (loading) {
+    return (
+      <Card>
+        <CardContent className="p-8">
+          <LoadingSpinner size="lg" text="Loading tickets..." />
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (error) {
+    return (
+      <Card>
+        <CardContent className="p-6">
+          <Alert variant="destructive">
+            <AlertTriangle className="h-4 w-4" />
+            <AlertDescription className="mb-4">
+              {error}
+            </AlertDescription>
+          </Alert>
+          <div className="flex justify-center">
+            <Button onClick={handleRetry} variant="outline">
+              <RefreshCw className="h-4 w-4 mr-2" />
+              Try Again
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <Card>
@@ -126,6 +152,7 @@ const TicketManagement = () => {
               onSuccess={() => {
                 setIsAddDialogOpen(false);
                 fetchTickets();
+                commonToasts.success.created('Support ticket');
               }}
               onCancel={() => setIsAddDialogOpen(false)}
             />
@@ -133,12 +160,22 @@ const TicketManagement = () => {
         </Dialog>
       </CardHeader>
       <CardContent>
-        <TicketTable
-          tickets={tickets}
-          onViewDetails={openViewDialog}
-          onAssign={openAssignDialog}
-          onStatusUpdate={handleStatusUpdate}
-        />
+        {tickets.length === 0 ? (
+          <div className="text-center py-8">
+            <p className="text-muted-foreground mb-4">No tickets found</p>
+            <Button onClick={() => setIsAddDialogOpen(true)} variant="outline">
+              <Plus className="w-4 h-4 mr-2" />
+              Create your first ticket
+            </Button>
+          </div>
+        ) : (
+          <TicketTable
+            tickets={tickets}
+            onViewDetails={openViewDialog}
+            onAssign={openAssignDialog}
+            onStatusUpdate={handleStatusUpdate}
+          />
+        )}
       </CardContent>
 
       <TicketAssignmentDialog
@@ -149,7 +186,7 @@ const TicketManagement = () => {
         assignmentData={assignmentData}
         onAssignmentDataChange={setAssignmentData}
         onAssign={handleAssignTicket}
-        loading={loading}
+        loading={assignmentLoading}
       />
     </Card>
   );

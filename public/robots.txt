@@ -1,14 +1,14 @@
-User-agent: Googlebot
-Allow: /
-
-User-agent: Bingbot
-Allow: /
-
-User-agent: Twitterbot
-Allow: /
-
-User-agent: facebookexternalhit
-Allow: /
 
 User-agent: *
 Allow: /
+
+# Disallow admin and sensitive areas
+Disallow: /dashboard
+Disallow: /auth
+Disallow: /api/
+
+# Sitemap
+Sitemap: https://helpdesk-flow-forge.lovable.app/sitemap.xml
+
+# Crawl delay (in seconds)
+Crawl-delay: 1
