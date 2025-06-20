@@ -57,6 +57,17 @@ const cookieUtils = {
   }
 };
 
+// Update Supabase client headers when token changes
+const updateSupabaseHeaders = (token: string | null) => {
+  if (token) {
+    // Set the authorization header for future requests
+    supabase.rest.headers['authorization'] = token;
+  } else {
+    // Remove the authorization header
+    delete supabase.rest.headers['authorization'];
+  }
+};
+
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
@@ -72,6 +83,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setLoading(false);
         return;
       }
+
+      // Update Supabase headers with the token
+      updateSupabaseHeaders(token);
 
       const { data, error } = await supabase
         .from('user_sessions')
@@ -93,6 +107,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       if (error || !data || new Date(data.expires_at) < new Date()) {
         cookieUtils.remove('auth_token');
+        updateSupabaseHeaders(null);
         setLoading(false);
         return;
       }
@@ -101,6 +116,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } catch (error) {
       console.error('Auth check error:', error);
       cookieUtils.remove('auth_token');
+      updateSupabaseHeaders(null);
     } finally {
       setLoading(false);
     }
@@ -144,6 +160,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
 
         cookieUtils.set('auth_token', sessionToken, { expires: 7 });
+        updateSupabaseHeaders(sessionToken);
         setUser(userData);
         return { success: true };
       }
@@ -202,6 +219,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       console.error('Logout error:', error);
     } finally {
       cookieUtils.remove('auth_token');
+      updateSupabaseHeaders(null);
       setUser(null);
     }
   };
