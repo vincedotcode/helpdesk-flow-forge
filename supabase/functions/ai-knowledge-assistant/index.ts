@@ -1,11 +1,10 @@
-
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-session-token',
 };
 
 const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
@@ -20,22 +19,19 @@ serve(async (req) => {
   try {
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
     
-    // Get the authorization header
-    const authHeader = req.headers.get('authorization');
-    console.log('Authorization header:', authHeader ? 'present' : 'missing');
+    // Get the session token from custom header
+    const sessionToken = req.headers.get('x-session-token');
+    console.log('Session token received:', sessionToken ? 'present' : 'missing');
     
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      console.error('Missing or invalid authorization header');
+    if (!sessionToken) {
+      console.error('Missing session token');
       return new Response(JSON.stringify({ 
-        error: 'Missing or invalid authorization header' 
+        error: 'Missing session token' 
       }), {
         status: 401,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
-    
-    const sessionToken = authHeader.replace('Bearer ', '');
-    console.log('Session token received:', sessionToken ? 'present' : 'missing');
     
     // Validate the session token against the user_sessions table
     const { data: sessionData, error: sessionError } = await supabase

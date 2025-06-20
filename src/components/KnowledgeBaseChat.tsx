@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -134,22 +133,8 @@ const KnowledgeBaseChat: React.FC = () => {
     setMessages(prev => [...prev, tempMessage]);
 
     try {
-      // Debug: Check what tokens are available in localStorage
-      const authToken = localStorage.getItem('cookie_auth_token');
-      const fallbackToken = localStorage.getItem('cookie_auth_token');
-      
-      console.log('Available tokens:', {
-        cookie_auth_token: authToken,
-        fallback: fallbackToken,
-        allLocalStorage: Object.keys(localStorage).filter(key => key.includes('auth') || key.includes('token'))
-      });
-
-      // Get the custom session token from localStorage - try both possible keys
-      let token = localStorage.getItem('cookie_auth_token');
-      if (!token) {
-        // Fallback to check if it's stored differently
-        token = localStorage.getItem('cookie_auth_token');
-      }
+      // Get the custom session token from localStorage
+      const token = localStorage.getItem('cookie_auth_token');
       
       console.log('Token being sent:', token ? 'present' : 'missing');
       
@@ -164,7 +149,7 @@ const KnowledgeBaseChat: React.FC = () => {
           userId: user.id
         },
         headers: {
-          Authorization: `Bearer ${token}`
+          'x-session-token': token  // Use custom header instead of Authorization
         }
       });
 
