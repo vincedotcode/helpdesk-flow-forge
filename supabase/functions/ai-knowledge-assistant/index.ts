@@ -1,10 +1,11 @@
+
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-session-token',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
 const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
@@ -19,67 +20,7 @@ serve(async (req) => {
   try {
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
     
-    // Get the session token from custom header
-    const sessionToken = req.headers.get('x-session-token');
-    console.log('Session token received:', sessionToken ? 'present' : 'missing');
-    
-    if (!sessionToken) {
-      console.error('Missing session token');
-      return new Response(JSON.stringify({ 
-        error: 'Missing session token' 
-      }), {
-        status: 401,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
-    
-    // Validate the session token against the user_sessions table
-    const { data: sessionData, error: sessionError } = await supabase
-      .from('user_sessions')
-      .select(`
-        user_id,
-        expires_at,
-        users!inner(
-          id,
-          email,
-          first_name,
-          last_name,
-          role,
-          department_id,
-          is_active
-        )
-      `)
-      .eq('session_token', sessionToken)
-      .single();
-
-    console.log('Session validation result:', { 
-      found: !!sessionData, 
-      error: sessionError?.message,
-      expired: sessionData ? new Date(sessionData.expires_at) < new Date() : 'N/A'
-    });
-
-    if (sessionError || !sessionData || new Date(sessionData.expires_at) < new Date()) {
-      console.error('Invalid or expired session:', { sessionError, sessionData });
-      return new Response(JSON.stringify({ 
-        error: 'Invalid or expired session' 
-      }), {
-        status: 401,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
-
     const { message, sessionId, userId } = await req.json();
-
-    // Verify the userId matches the session
-    if (userId !== sessionData.user_id) {
-      console.error('User ID mismatch:', { provided: userId, expected: sessionData.user_id });
-      return new Response(JSON.stringify({ 
-        error: 'User ID mismatch' 
-      }), {
-        status: 401,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
 
     console.log('Processing knowledge base query:', { message, sessionId, userId });
 
@@ -147,31 +88,39 @@ User question: ${message}`;
     if (aiResponse.startsWith('CREATE_TICKET:')) {
       const ticketDescription = aiResponse.replace('CREATE_TICKET:', '').trim();
       
-      // Create a ticket automatically
-      const { data: ticket, error: ticketError } = await supabase
-        .from('tickets')
-        .insert({
-          title: `Auto-generated: ${ticketDescription.substring(0, 50)}...`,
-          description: `This ticket was automatically created from a knowledge base interaction.
+      // Get user info for department
+      const { data: userInfo, error: userError } = await supabase
+        .from('users')
+        .select('department_id')
+        .eq('id', userId)
+        .single();
+
+      if (!userError && userInfo) {
+        // Create a ticket automatically
+        const { data: ticket, error: ticketError } = await supabase
+          .from('tickets')
+          .insert({
+            title: `Auto-generated: ${ticketDescription.substring(0, 50)}...`,
+            description: `This ticket was automatically created from a knowledge base interaction.
 
 User Question: ${message}
 
 Issue Description: ${ticketDescription}`,
-          status: 'open',
-          priority: 'medium',
-          created_by: userId,
-          department_id: sessionData.users.department_id,
-        })
-        .select()
-        .single();
+            status: 'open',
+            priority: 'medium',
+            created_by: userId,
+            department_id: userInfo.department_id,
+          })
+          .select()
+          .single();
 
-      if (ticketError) {
-        console.error('Error creating ticket:', ticketError);
-        aiResponse = "I understand you need help with this issue. Unfortunately, I couldn't automatically create a support ticket right now. Please contact your system administrator or create a ticket manually.";
-      } else {
-        ticketCreated = true;
-        ticketId = ticket.id;
-        aiResponse = `I've automatically created a support ticket for your issue (Ticket #${ticket.id}). Our technical team will review it and get back to you soon. 
+        if (ticketError) {
+          console.error('Error creating ticket:', ticketError);
+          aiResponse = "I understand you need help with this issue. Unfortunately, I couldn't automatically create a support ticket right now. Please contact your system administrator or create a ticket manually.";
+        } else {
+          ticketCreated = true;
+          ticketId = ticket.id;
+          aiResponse = `I've automatically created a support ticket for your issue (Ticket #${ticket.id}). Our technical team will review it and get back to you soon. 
 
 Your ticket details:
 - Title: ${ticket.title}
@@ -179,6 +128,7 @@ Your ticket details:
 - Priority: ${ticket.priority}
 
 You can track the progress of your ticket in the dashboard.`;
+        }
       }
     }
 

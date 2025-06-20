@@ -133,23 +133,11 @@ const KnowledgeBaseChat: React.FC = () => {
     setMessages(prev => [...prev, tempMessage]);
 
     try {
-      // Get the custom session token from localStorage
-      const token = localStorage.getItem('cookie_auth_token');
-      
-      console.log('Token being sent:', token ? 'present' : 'missing');
-      
-      if (!token) {
-        throw new Error('No valid session token found. Please try logging in again.');
-      }
-
       const { data, error } = await supabase.functions.invoke('ai-knowledge-assistant', {
         body: {
           message: userMessage,
           sessionId: activeSessionId,
           userId: user.id
-        },
-        headers: {
-          'x-session-token': token  // Use custom header instead of Authorization
         }
       });
 
