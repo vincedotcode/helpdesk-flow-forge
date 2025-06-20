@@ -5,8 +5,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Plus, AlertTriangle, RefreshCw } from 'lucide-react';
+import { Plus, RefreshCw } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import DetailedTicketForm from './DetailedTicketForm';
 import TicketTable from './TicketTable';
@@ -24,7 +23,6 @@ const TicketManagement = () => {
     departments,
     departmentTechnicians,
     loading,
-    error,
     setLoading,
     fetchTickets,
     fetchDepartmentTechnicians,
@@ -93,27 +91,6 @@ const TicketManagement = () => {
       <Card>
         <CardContent className="p-8">
           <LoadingSpinner size="lg" text="Loading tickets..." />
-        </CardContent>
-      </Card>
-    );
-  }
-
-  if (error) {
-    return (
-      <Card>
-        <CardContent className="p-6">
-          <Alert variant="destructive">
-            <AlertTriangle className="h-4 w-4" />
-            <AlertDescription className="mb-4">
-              {error}
-            </AlertDescription>
-          </Alert>
-          <div className="flex justify-center">
-            <Button onClick={handleRetry} variant="outline">
-              <RefreshCw className="h-4 w-4 mr-2" />
-              Try Again
-            </Button>
-          </div>
         </CardContent>
       </Card>
     );
