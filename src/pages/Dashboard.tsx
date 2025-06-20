@@ -9,6 +9,7 @@ import TicketManagement from '@/components/TicketManagement';
 import KnowledgeManagement from '@/components/KnowledgeManagement';
 import KnowledgeBaseChat from '@/components/KnowledgeBaseChat';
 import BroadcastManagement from '@/components/BroadcastManagement';
+import SettingsPanel from '@/components/SettingsPanel';
 import { Separator } from '@/components/ui/separator';
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from '@/components/ui/breadcrumb';
 
@@ -34,19 +35,7 @@ const Dashboard = () => {
       case 'broadcasts':
         return <BroadcastManagement />;
       case 'settings':
-        return (
-          <div className="space-y-6">
-            <div>
-              <h1 className="text-3xl font-bold text-foreground">Settings</h1>
-              <p className="text-muted-foreground">
-                Configure your helpdesk system preferences
-              </p>
-            </div>
-            <div className="text-center py-12">
-              <p className="text-muted-foreground">Settings panel coming soon...</p>
-            </div>
-          </div>
-        );
+        return <SettingsPanel />;
       default:
         return <DashboardOverview />;
     }

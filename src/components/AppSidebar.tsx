@@ -25,7 +25,8 @@ import {
   LogOut,
   BarChart3,
   BookOpen,
-  MessageCircle
+  MessageCircle,
+  Megaphone
 } from 'lucide-react';
 
 interface AppSidebarProps {
@@ -39,6 +40,7 @@ export function AppSidebar({ activeTab, onTabChange }: AppSidebarProps) {
   const canManageUsers = user?.role === 'super_admin' || user?.role === 'department_admin';
   const canManageDepartments = user?.role === 'super_admin';
   const canManageKnowledge = user?.role === 'super_admin';
+  const canCreateBroadcasts = user?.role === 'super_admin' || user?.role === 'department_admin';
 
   const menuItems = [
     {
@@ -70,6 +72,12 @@ export function AppSidebar({ activeTab, onTabChange }: AppSidebarProps) {
       icon: BookOpen,
       value: 'knowledge',
       show: canManageKnowledge,
+    },
+    {
+      title: 'Broadcasts',
+      icon: Megaphone,
+      value: 'broadcasts',
+      show: canCreateBroadcasts,
     },
     {
       title: 'Departments',
