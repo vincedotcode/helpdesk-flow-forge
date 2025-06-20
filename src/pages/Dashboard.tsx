@@ -8,6 +8,7 @@ import DepartmentManagement from '@/components/DepartmentManagement';
 import TicketManagement from '@/components/TicketManagement';
 import KnowledgeManagement from '@/components/KnowledgeManagement';
 import KnowledgeBaseChat from '@/components/KnowledgeBaseChat';
+import BroadcastManagement from '@/components/BroadcastManagement';
 import { Separator } from '@/components/ui/separator';
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from '@/components/ui/breadcrumb';
 
@@ -30,6 +31,8 @@ const Dashboard = () => {
         return <KnowledgeManagement />;
       case 'knowledge-chat':
         return <KnowledgeBaseChat />;
+      case 'broadcasts':
+        return <BroadcastManagement />;
       case 'settings':
         return (
           <div className="space-y-6">
@@ -58,6 +61,7 @@ const Dashboard = () => {
       users: 'Users',
       knowledge: 'Knowledge Management',
       'knowledge-chat': 'AI Assistant',
+      broadcasts: 'Broadcasts',
       settings: 'Settings',
     };
 
