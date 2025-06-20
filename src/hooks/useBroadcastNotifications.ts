@@ -33,7 +33,11 @@ export const useBroadcastNotifications = () => {
 
       if (error) throw error;
 
-      const notifications: BroadcastNotification[] = data || [];
+      const notifications: BroadcastNotification[] = (data || []).map((item: any) => ({
+        ...item,
+        importance: item.importance as 'low' | 'medium' | 'high'
+      }));
+      
       setNotifications(notifications);
       setUnreadCount(notifications.filter(n => !n.is_read).length);
     } catch (error) {

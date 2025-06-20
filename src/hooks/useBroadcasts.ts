@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -64,10 +63,11 @@ export const useBroadcasts = () => {
         .select('id, name')
         .in('id', departmentIds);
 
-      // Combine the data
+      // Combine the data with proper type casting
       const enrichedBroadcasts: Broadcast[] = (broadcastsData || []).map(broadcast => ({
         ...broadcast,
         target_audience: broadcast.target_audience as Broadcast['target_audience'],
+        importance: broadcast.importance as 'low' | 'medium' | 'high',
         creator: creatorsData?.find(c => c.id === broadcast.created_by),
         department: departmentsData?.find(d => d.id === broadcast.target_department_id)
       }));
