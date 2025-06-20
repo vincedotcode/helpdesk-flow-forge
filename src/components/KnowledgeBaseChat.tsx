@@ -133,11 +133,21 @@ const KnowledgeBaseChat: React.FC = () => {
     setMessages(prev => [...prev, tempMessage]);
 
     try {
+      // Get the current session token from the supabase client
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session?.access_token) {
+        throw new Error('No valid session found');
+      }
+
       const { data, error } = await supabase.functions.invoke('ai-knowledge-assistant', {
         body: {
           message: userMessage,
           sessionId: activeSessionId,
           userId: user.id
+        },
+        headers: {
+          Authorization: `Bearer ${session.access_token}`
         }
       });
 
