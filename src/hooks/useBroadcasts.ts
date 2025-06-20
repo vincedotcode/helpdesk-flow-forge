@@ -107,12 +107,20 @@ export const useBroadcasts = () => {
     if (!user?.id) return { success: false, error: 'User not authenticated' };
 
     try {
+      console.log('Creating broadcast with data:', broadcastData);
+      console.log('Current user:', user);
+      
       const { error } = await supabase.from('broadcasts').insert({
         ...broadcastData,
         created_by: user.id,
       });
 
-      if (error) throw error;
+      console.log('Broadcast creation result:', { error });
+
+      if (error) {
+        console.error('Broadcast creation error:', error);
+        throw error;
+      }
 
       toast({
         title: "Success",
@@ -125,7 +133,7 @@ export const useBroadcasts = () => {
       console.error('Error creating broadcast:', error);
       toast({
         title: "Error",
-        description: "Failed to create broadcast",
+        description: `Failed to create broadcast: ${error.message}`,
         variant: "destructive",
       });
       return { success: false, error: 'Failed to create broadcast' };

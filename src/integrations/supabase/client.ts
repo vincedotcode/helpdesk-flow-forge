@@ -14,7 +14,7 @@ const cookieUtils = {
   }
 };
 
-// Create supabase client with custom auth header
+// Create supabase client with custom auth header that gets token dynamically
 export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
   global: {
     headers: {
@@ -25,3 +25,13 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
     }
   }
 });
+
+// Function to set authorization header for requests
+export const setAuthToken = (token: string | null) => {
+  if (token) {
+    // Store in localStorage for the dynamic header getter
+    localStorage.setItem('cookie_auth_token', token);
+  } else {
+    localStorage.removeItem('cookie_auth_token');
+  }
+};

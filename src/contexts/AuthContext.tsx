@@ -1,6 +1,5 @@
-
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { supabase, setAuthToken } from '@/integrations/supabase/client';
 
 export interface User {
   id: string;
@@ -73,6 +72,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return;
       }
 
+      // Set the auth token for Supabase requests
+      setAuthToken(token);
+
       const { data, error } = await supabase
         .from('user_sessions')
         .select(`
@@ -93,6 +95,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       if (error || !data || new Date(data.expires_at) < new Date()) {
         cookieUtils.remove('auth_token');
+        setAuthToken(null);
         setLoading(false);
         return;
       }
@@ -101,6 +104,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } catch (error) {
       console.error('Auth check error:', error);
       cookieUtils.remove('auth_token');
+      setAuthToken(null);
     } finally {
       setLoading(false);
     }
@@ -144,6 +148,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
 
         cookieUtils.set('auth_token', sessionToken, { expires: 7 });
+        setAuthToken(sessionToken);
         setUser(userData);
         return { success: true };
       }
@@ -202,6 +207,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       console.error('Logout error:', error);
     } finally {
       cookieUtils.remove('auth_token');
+      setAuthToken(null);
       setUser(null);
     }
   };
