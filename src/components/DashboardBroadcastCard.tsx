@@ -11,16 +11,16 @@ interface DashboardBroadcastCardProps {
   minimal?: boolean;
 }
 
-const getImportanceColor = (importance: string) => {
+const getImportanceBadge = (importance: string) => {
   switch (importance) {
     case 'high':
-      return 'bg-red-100 text-red-800 border-red-300 font-bold';
+      return { variant: 'destructive' as const, label: 'HIGH' };
     case 'medium':
-      return 'bg-orange-100 text-orange-800 border-orange-300 font-semibold';
+      return { variant: 'secondary' as const, label: 'MEDIUM' };
     case 'low':
-      return 'bg-blue-100 text-blue-800 border-blue-300 font-medium';
+      return { variant: 'outline' as const, label: 'LOW' };
     default:
-      return 'bg-gray-100 text-gray-800 border-gray-300 font-medium';
+      return { variant: 'outline' as const, label: 'UNKNOWN' };
   }
 };
 
@@ -43,89 +43,85 @@ const DashboardBroadcastCard: React.FC<DashboardBroadcastCardProps> = ({
   broadcast, 
   minimal = false 
 }) => {
+  const importanceBadge = getImportanceBadge(broadcast.importance);
+
   if (minimal) {
     return (
-      <article className="border-2 border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition-colors bg-white">
-        <div className="flex items-start justify-between gap-4">
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-3 mb-2">
-              <h3 className="font-bold text-base text-gray-900 truncate">
+      <Card className="hover:bg-muted/50 transition-colors">
+        <CardContent className="p-4">
+          <div className="space-y-3">
+            <div className="flex items-start justify-between gap-3">
+              <h3 className="font-semibold leading-tight flex-1">
                 {broadcast.title}
               </h3>
-              <Badge 
-                variant="outline" 
-                className={`text-xs px-2 py-1 ${getImportanceColor(broadcast.importance)}`}
-                aria-label={`Priority: ${broadcast.importance}`}
-              >
-                {broadcast.importance.toUpperCase()}
+              <Badge variant={importanceBadge.variant} className="text-xs">
+                {importanceBadge.label}
               </Badge>
             </div>
-            <p className="text-sm text-gray-700 line-clamp-2 mb-3 font-medium leading-relaxed">
+            
+            <p className="text-sm text-muted-foreground line-clamp-2">
               {broadcast.message}
             </p>
-            <div className="flex items-center gap-4 text-xs text-gray-600">
+            
+            <div className="flex items-center gap-4 text-xs text-muted-foreground">
               <div className="flex items-center gap-1">
-                <Clock className="w-4 h-4" aria-hidden="true" />
-                <span className="font-medium">
+                <Clock className="h-3 w-3" />
+                <span>
                   {formatDistanceToNow(new Date(broadcast.created_at), { addSuffix: true })}
                 </span>
               </div>
               <div className="flex items-center gap-1">
-                <Users className="w-4 h-4" aria-hidden="true" />
-                <span className="font-medium">
+                <Users className="h-3 w-3" />
+                <span>
                   {getAudienceLabel(broadcast.target_audience, broadcast.department_name)}
                 </span>
               </div>
             </div>
           </div>
-        </div>
-      </article>
+        </CardContent>
+      </Card>
     );
   }
 
   return (
-    <Card className="hover:shadow-md transition-shadow border-2 border-gray-100">
+    <Card className="hover:bg-muted/50 transition-colors">
       <CardContent className="p-6">
-        <article className="space-y-4">
-          <div className="flex items-start justify-between">
-            <h3 className="font-bold text-lg text-gray-900 truncate flex-1">
+        <div className="space-y-4">
+          <div className="flex items-start justify-between gap-3">
+            <h3 className="font-semibold text-lg flex-1">
               {broadcast.title}
             </h3>
-            <Badge 
-              variant="outline" 
-              className={`text-sm ml-3 px-3 py-1 ${getImportanceColor(broadcast.importance)}`}
-              aria-label={`Priority: ${broadcast.importance}`}
-            >
-              {broadcast.importance.toUpperCase()}
+            <Badge variant={importanceBadge.variant}>
+              {importanceBadge.label}
             </Badge>
           </div>
           
-          <p className="text-base text-gray-700 line-clamp-2 font-medium leading-relaxed">
+          <p className="text-muted-foreground">
             {broadcast.message}
           </p>
           
-          <div className="flex items-center justify-between text-sm text-gray-600">
-            <div className="flex items-center gap-6">
-              <div className="flex items-center gap-2">
-                <Clock className="w-4 h-4" aria-hidden="true" />
-                <span className="font-medium">
+          <div className="flex items-center justify-between text-sm text-muted-foreground">
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-1">
+                <Clock className="h-4 w-4" />
+                <span>
                   {formatDistanceToNow(new Date(broadcast.created_at), { addSuffix: true })}
                 </span>
               </div>
-              <div className="flex items-center gap-2">
-                <Users className="w-4 h-4" aria-hidden="true" />
-                <span className="font-medium">
+              <div className="flex items-center gap-1">
+                <Users className="h-4 w-4" />
+                <span>
                   {getAudienceLabel(broadcast.target_audience, broadcast.department_name)}
                 </span>
               </div>
             </div>
             {broadcast.creator_name && (
-              <span className="text-sm text-gray-600 font-medium">
+              <span className="font-medium">
                 By {broadcast.creator_name}
               </span>
             )}
           </div>
-        </article>
+        </div>
       </CardContent>
     </Card>
   );

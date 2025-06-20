@@ -5,7 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
-import { Users, Ticket, Clock, TrendingUp, AlertTriangle } from 'lucide-react';
+import { Users, Ticket, Clock, TrendingUp, AlertTriangle, CheckCircle2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import BroadcastNotifications from './BroadcastNotifications';
 import DashboardBroadcastSection from './DashboardBroadcastSection';
@@ -99,7 +99,7 @@ const DashboardOverview: React.FC = () => {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-96">
-        <div className="text-lg font-medium text-gray-600" role="status" aria-live="polite">
+        <div className="text-lg font-medium text-muted-foreground">
           Loading dashboard...
         </div>
       </div>
@@ -107,98 +107,76 @@ const DashboardOverview: React.FC = () => {
   }
 
   return (
-    <div className="space-y-8 font-sans">
-      {/* Welcome Section with Better Typography */}
-      <header className="bg-white border border-gray-200 rounded-lg p-6">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2 tracking-tight">
+    <div className="space-y-8">
+      {/* Welcome Header */}
+      <div className="space-y-2">
+        <h1 className="text-3xl font-bold tracking-tight">
           {getGreeting()}, {user?.first_name}
         </h1>
-        <p className="text-lg text-gray-700 font-medium mb-3">
+        <p className="text-muted-foreground">
           Welcome to your Help Desk Dashboard
         </p>
-        <Badge variant="outline" className="text-sm font-semibold px-3 py-1">
+        <Badge variant="secondary" className="w-fit">
           {getRoleDisplayName(user?.role || '')}
         </Badge>
-      </header>
+      </div>
 
-      {/* Improved Stats Grid with Better Typography */}
-      <section aria-label="Dashboard Statistics">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          <Card className="border-2 border-gray-100 hover:border-gray-200 transition-colors">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-semibold text-gray-600 uppercase tracking-wider mb-2">
-                    Total Tickets
-                  </p>
-                  <p className="text-3xl font-bold text-gray-900" aria-label={`${stats.totalTickets} total tickets`}>
-                    {stats.totalTickets}
-                  </p>
-                </div>
-                <div className="p-3 bg-blue-50 rounded-full">
-                  <Ticket className="h-6 w-6 text-blue-600" aria-hidden="true" />
-                </div>
-              </div>
+      {/* Stats Cards */}
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Tickets</CardTitle>
+            <Ticket className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{stats.totalTickets}</div>
+            <p className="text-xs text-muted-foreground">
+              All tickets in system
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Open Tickets</CardTitle>
+            <Clock className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{stats.openTickets}</div>
+            <p className="text-xs text-muted-foreground">
+              Awaiting resolution
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Urgent Tickets</CardTitle>
+            <AlertTriangle className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-destructive">{stats.urgentTickets}</div>
+            <p className="text-xs text-muted-foreground">
+              Require immediate attention
+            </p>
+          </CardContent>
+        </Card>
+
+        {(user?.role === 'super_admin' || user?.role === 'department_admin') && (
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Total Users</CardTitle>
+              <Users className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{stats.totalUsers}</div>
+              <p className="text-xs text-muted-foreground">
+                Active users in system
+              </p>
             </CardContent>
           </Card>
-
-          <Card className="border-2 border-gray-100 hover:border-gray-200 transition-colors">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-semibold text-gray-600 uppercase tracking-wider mb-2">
-                    Open Tickets
-                  </p>
-                  <p className="text-3xl font-bold text-gray-900" aria-label={`${stats.openTickets} open tickets`}>
-                    {stats.openTickets}
-                  </p>
-                </div>
-                <div className="p-3 bg-orange-50 rounded-full">
-                  <Clock className="h-6 w-6 text-orange-600" aria-hidden="true" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="border-2 border-gray-100 hover:border-gray-200 transition-colors">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-semibold text-gray-600 uppercase tracking-wider mb-2">
-                    Urgent Tickets
-                  </p>
-                  <p className="text-3xl font-bold text-red-600" aria-label={`${stats.urgentTickets} urgent tickets`}>
-                    {stats.urgentTickets}
-                  </p>
-                </div>
-                <div className="p-3 bg-red-50 rounded-full">
-                  <AlertTriangle className="h-6 w-6 text-red-600" aria-hidden="true" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          {(user?.role === 'super_admin' || user?.role === 'department_admin') && (
-            <Card className="border-2 border-gray-100 hover:border-gray-200 transition-colors">
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-semibold text-gray-600 uppercase tracking-wider mb-2">
-                      Total Users
-                    </p>
-                    <p className="text-3xl font-bold text-gray-900" aria-label={`${stats.totalUsers} total users`}>
-                      {stats.totalUsers}
-                    </p>
-                  </div>
-                  <div className="p-3 bg-green-50 rounded-full">
-                    <Users className="h-6 w-6 text-green-600" aria-hidden="true" />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          )}
-        </div>
-      </section>
+        )}
+      </div>
 
       {/* Broadcast Section */}
       <DashboardBroadcastSection />
@@ -206,47 +184,37 @@ const DashboardOverview: React.FC = () => {
       {/* Personal Notifications */}
       <BroadcastNotifications />
 
-      {/* Activity Section with Better Typography */}
-      <Card className="border-2 border-gray-100">
-        <CardHeader className="pb-4">
-          <CardTitle className="text-xl font-bold flex items-center gap-3 text-gray-900">
-            <div className="p-2 bg-blue-50 rounded-lg">
-              <TrendingUp className="w-5 h-5 text-blue-600" aria-hidden="true" />
-            </div>
+      {/* Recent Activity */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <TrendingUp className="h-5 w-5" />
             System Activity
           </CardTitle>
         </CardHeader>
-        <CardContent className="pt-0">
-          <div className="space-y-4">
-            <div className="flex items-center justify-between py-3 border-b border-gray-100">
-              <span className="text-base font-medium text-gray-700">New tickets today</span>
-              <Badge variant="secondary" className="text-base font-bold px-3 py-1">
-                {stats.recentActivity}
-              </Badge>
-            </div>
-            <div className="flex items-center justify-between py-3">
-              <span className="text-base font-medium text-gray-700">System Status</span>
-              <div className="flex items-center gap-3">
-                <div className="w-3 h-3 bg-green-500 rounded-full" aria-hidden="true"></div>
-                <span className="text-base font-semibold text-green-700">All Systems Operational</span>
-              </div>
+        <CardContent className="space-y-4">
+          <div className="flex items-center justify-between">
+            <span className="text-sm font-medium">New tickets today</span>
+            <Badge variant="outline">{stats.recentActivity}</Badge>
+          </div>
+          <div className="flex items-center justify-between">
+            <span className="text-sm font-medium">System Status</span>
+            <div className="flex items-center gap-2">
+              <CheckCircle2 className="h-4 w-4 text-green-600" />
+              <span className="text-sm text-green-600 font-medium">Operational</span>
             </div>
           </div>
         </CardContent>
       </Card>
 
-      {/* Quick Actions with Better Typography */}
-      <Card className="border-2 border-gray-100">
-        <CardHeader className="pb-4">
-          <CardTitle className="text-xl font-bold text-gray-900">Quick Actions</CardTitle>
+      {/* Quick Actions */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Quick Actions</CardTitle>
         </CardHeader>
-        <CardContent className="pt-0">
-          <div className="flex flex-wrap gap-4">
-            <Button 
-              onClick={() => navigate('/dashboard/tickets')}
-              size="lg"
-              className="font-semibold text-base px-6 py-3"
-            >
+        <CardContent>
+          <div className="flex flex-wrap gap-2">
+            <Button onClick={() => navigate('/dashboard/tickets')}>
               View All Tickets
             </Button>
             
@@ -255,8 +223,6 @@ const DashboardOverview: React.FC = () => {
                 <Button 
                   onClick={() => navigate('/dashboard/analytics')}
                   variant="outline"
-                  size="lg"
-                  className="font-semibold text-base px-6 py-3"
                 >
                   View Analytics
                 </Button>
@@ -264,8 +230,6 @@ const DashboardOverview: React.FC = () => {
                 <Button 
                   onClick={() => navigate('/dashboard/broadcasts')}
                   variant="outline"
-                  size="lg"
-                  className="font-semibold text-base px-6 py-3"
                 >
                   Manage Broadcasts
                 </Button>
