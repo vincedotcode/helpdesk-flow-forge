@@ -110,25 +110,43 @@ export const useBroadcasts = () => {
       console.log('Creating broadcast with data:', broadcastData);
       console.log('Current user:', user);
       
-      const { error } = await supabase.from('broadcasts').insert({
-        ...broadcastData,
-        created_by: user.id,
+      // Use the security definer function instead of direct insert
+      const { data, error } = await supabase.rpc('create_broadcast_with_user', {
+        p_user_id: user.id,
+        p_title: broadcastData.title,
+        p_message: broadcastData.message,
+        p_target_audience: broadcastData.target_audience,
+        p_target_department_id: broadcastData.target_department_id || null
       });
 
-      console.log('Broadcast creation result:', { error });
+      console.log('Broadcast creation result:', { data, error });
 
       if (error) {
         console.error('Broadcast creation error:', error);
         throw error;
       }
 
-      toast({
-        title: "Success",
-        description: "Broadcast created successfully",
-      });
-      
-      await fetchBroadcasts();
-      return { success: true };
+      if (data && Array.isArray(data) && data.length > 0) {
+        const result = data[0];
+        if (result.success) {
+          toast({
+            title: "Success",
+            description: "Broadcast created successfully",
+          });
+          
+          await fetchBroadcasts();
+          return { success: true };
+        } else {
+          toast({
+            title: "Error",
+            description: result.message || "Failed to create broadcast",
+            variant: "destructive",
+          });
+          return { success: false, error: result.message };
+        }
+      }
+
+      return { success: false, error: 'Unknown error occurred' };
     } catch (error) {
       console.error('Error creating broadcast:', error);
       toast({

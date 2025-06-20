@@ -29,8 +29,8 @@ const BroadcastForm: React.FC<BroadcastFormProps> = ({
   const [formData, setFormData] = useState({
     title: '',
     message: '',
-    target_audience: '',
-    target_department_id: '',
+    target_audience: user?.role === 'department_admin' ? 'department_specific' : '',
+    target_department_id: user?.role === 'department_admin' ? user.department_id || '' : '',
   });
   const [loading, setLoading] = useState(false);
 
@@ -56,8 +56,8 @@ const BroadcastForm: React.FC<BroadcastFormProps> = ({
       setFormData({
         title: '',
         message: '',
-        target_audience: '',
-        target_department_id: '',
+        target_audience: user?.role === 'department_admin' ? 'department_specific' : '',
+        target_department_id: user?.role === 'department_admin' ? user.department_id || '' : '',
       });
       onCancel();
     }
@@ -76,6 +76,7 @@ const BroadcastForm: React.FC<BroadcastFormProps> = ({
         { value: 'department_specific', label: 'Specific Department' }
       );
     } else if (user?.role === 'department_admin') {
+      // Department admins can only create broadcasts for their own department
       options.push(
         { value: 'department_specific', label: 'My Department' }
       );
@@ -120,6 +121,7 @@ const BroadcastForm: React.FC<BroadcastFormProps> = ({
               value={formData.target_audience}
               onValueChange={(value) => setFormData({ ...formData, target_audience: value })}
               required
+              disabled={user?.role === 'department_admin'} // Department admins have fixed audience
             >
               <SelectTrigger>
                 <SelectValue placeholder="Select target audience" />
@@ -153,6 +155,15 @@ const BroadcastForm: React.FC<BroadcastFormProps> = ({
                   ))}
                 </SelectContent>
               </Select>
+            </div>
+          )}
+
+          {formData.target_audience === 'department_specific' && user?.role === 'department_admin' && (
+            <div className="space-y-2">
+              <Label>Department</Label>
+              <div className="p-2 bg-muted rounded-md text-sm text-muted-foreground">
+                Broadcast will be sent to your department only
+              </div>
             </div>
           )}
 

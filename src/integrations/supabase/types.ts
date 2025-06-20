@@ -535,6 +535,20 @@ export type Database = {
           is_active: boolean
         }[]
       }
+      create_broadcast_with_user: {
+        Args: {
+          p_user_id: string
+          p_title: string
+          p_message: string
+          p_target_audience: string
+          p_target_department_id?: string
+        }
+        Returns: {
+          success: boolean
+          broadcast_id: string
+          message: string
+        }[]
+      }
       create_user_by_admin: {
         Args: {
           user_email: string
