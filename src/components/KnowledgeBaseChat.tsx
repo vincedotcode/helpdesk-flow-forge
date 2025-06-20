@@ -134,11 +134,27 @@ const KnowledgeBaseChat: React.FC = () => {
     setMessages(prev => [...prev, tempMessage]);
 
     try {
-      // Get the custom session token from localStorage
-      const token = localStorage.getItem('cookie_auth_token');
+      // Debug: Check what tokens are available in localStorage
+      const authToken = localStorage.getItem('cookie_auth_token');
+      const fallbackToken = localStorage.getItem('cookie_auth_token');
+      
+      console.log('Available tokens:', {
+        cookie_auth_token: authToken,
+        fallback: fallbackToken,
+        allLocalStorage: Object.keys(localStorage).filter(key => key.includes('auth') || key.includes('token'))
+      });
+
+      // Get the custom session token from localStorage - try both possible keys
+      let token = localStorage.getItem('cookie_auth_token');
+      if (!token) {
+        // Fallback to check if it's stored differently
+        token = localStorage.getItem('cookie_auth_token');
+      }
+      
+      console.log('Token being sent:', token ? 'present' : 'missing');
       
       if (!token) {
-        throw new Error('No valid session found');
+        throw new Error('No valid session token found. Please try logging in again.');
       }
 
       const { data, error } = await supabase.functions.invoke('ai-knowledge-assistant', {
@@ -152,7 +168,10 @@ const KnowledgeBaseChat: React.FC = () => {
         }
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Edge function error:', error);
+        throw error;
+      }
 
       setMessages(prev => prev.slice(0, -1));
       
@@ -180,7 +199,7 @@ const KnowledgeBaseChat: React.FC = () => {
       console.error('Error sending message:', error);
       toast({
         title: "Error",
-        description: "Failed to send message. Please try again.",
+        description: error instanceof Error ? error.message : "Failed to send message. Please try again.",
         variant: "destructive",
       });
       

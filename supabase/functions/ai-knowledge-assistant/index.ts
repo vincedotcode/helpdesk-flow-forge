@@ -22,11 +22,20 @@ serve(async (req) => {
     
     // Get the authorization header
     const authHeader = req.headers.get('authorization');
+    console.log('Authorization header:', authHeader ? 'present' : 'missing');
+    
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      throw new Error('Missing or invalid authorization header');
+      console.error('Missing or invalid authorization header');
+      return new Response(JSON.stringify({ 
+        error: 'Missing or invalid authorization header' 
+      }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
     
     const sessionToken = authHeader.replace('Bearer ', '');
+    console.log('Session token received:', sessionToken ? 'present' : 'missing');
     
     // Validate the session token against the user_sessions table
     const { data: sessionData, error: sessionError } = await supabase
@@ -47,15 +56,33 @@ serve(async (req) => {
       .eq('session_token', sessionToken)
       .single();
 
+    console.log('Session validation result:', { 
+      found: !!sessionData, 
+      error: sessionError?.message,
+      expired: sessionData ? new Date(sessionData.expires_at) < new Date() : 'N/A'
+    });
+
     if (sessionError || !sessionData || new Date(sessionData.expires_at) < new Date()) {
-      throw new Error('Invalid or expired session');
+      console.error('Invalid or expired session:', { sessionError, sessionData });
+      return new Response(JSON.stringify({ 
+        error: 'Invalid or expired session' 
+      }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
 
     const { message, sessionId, userId } = await req.json();
 
     // Verify the userId matches the session
     if (userId !== sessionData.user_id) {
-      throw new Error('User ID mismatch');
+      console.error('User ID mismatch:', { provided: userId, expected: sessionData.user_id });
+      return new Response(JSON.stringify({ 
+        error: 'User ID mismatch' 
+      }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
 
     console.log('Processing knowledge base query:', { message, sessionId, userId });
