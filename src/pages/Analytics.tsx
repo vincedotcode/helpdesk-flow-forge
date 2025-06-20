@@ -1,9 +1,10 @@
 
 import React from 'react';
-import Analytics from '@/components/Analytics';
+import { Navigate } from 'react-router-dom';
 
 const AnalyticsPage: React.FC = () => {
-  return <Analytics />;
+  // Redirect to dashboard with analytics tab
+  return <Navigate to="/dashboard" replace />;
 };
 
 export default AnalyticsPage;

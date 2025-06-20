@@ -10,6 +10,7 @@ import KnowledgeManagement from '@/components/KnowledgeManagement';
 import KnowledgeBaseChat from '@/components/KnowledgeBaseChat';
 import BroadcastManagement from '@/components/BroadcastManagement';
 import SettingsPanel from '@/components/SettingsPanel';
+import Analytics from '@/components/Analytics';
 import { Separator } from '@/components/ui/separator';
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from '@/components/ui/breadcrumb';
 
@@ -21,7 +22,7 @@ const Dashboard = () => {
       case 'dashboard':
         return <DashboardOverview />;
       case 'analytics':
-        return <DashboardOverview />;
+        return <Analytics />;
       case 'tickets':
         return <TicketManagement />;
       case 'departments':
