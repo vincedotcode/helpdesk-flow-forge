@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
-import { useToast } from '@/components/ui/use-toast';
+import { useToast } from '@/hooks/use-toast';
 
 export interface Broadcast {
   id: string;
@@ -11,6 +11,7 @@ export interface Broadcast {
   created_by: string;
   target_audience: 'all_users' | 'department_admin' | 'department_technician' | 'department_specific';
   target_department_id?: string;
+  importance: 'low' | 'medium' | 'high';
   is_active: boolean;
   created_at: string;
   updated_at: string;
@@ -103,6 +104,7 @@ export const useBroadcasts = () => {
     message: string;
     target_audience: string;
     target_department_id?: string;
+    importance: string;
   }) => {
     if (!user?.id) return { success: false, error: 'User not authenticated' };
 
@@ -110,13 +112,13 @@ export const useBroadcasts = () => {
       console.log('Creating broadcast with data:', broadcastData);
       console.log('Current user:', user);
       
-      // Use the security definer function instead of direct insert
       const { data, error } = await supabase.rpc('create_broadcast_with_user', {
         p_user_id: user.id,
         p_title: broadcastData.title,
         p_message: broadcastData.message,
         p_target_audience: broadcastData.target_audience,
-        p_target_department_id: broadcastData.target_department_id || null
+        p_target_department_id: broadcastData.target_department_id || null,
+        p_importance: broadcastData.importance
       });
 
       console.log('Broadcast creation result:', { data, error });
@@ -131,7 +133,7 @@ export const useBroadcasts = () => {
         if (result.success) {
           toast({
             title: "Success",
-            description: "Broadcast created successfully",
+            description: "Broadcast created successfully and notifications sent to users",
           });
           
           await fetchBroadcasts();

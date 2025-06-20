@@ -16,6 +16,7 @@ interface BroadcastFormProps {
     message: string;
     target_audience: string;
     target_department_id?: string;
+    importance: string;
   }) => Promise<{ success: boolean; error?: string }>;
   onCancel: () => void;
 }
@@ -31,6 +32,7 @@ const BroadcastForm: React.FC<BroadcastFormProps> = ({
     message: '',
     target_audience: user?.role === 'department_admin' ? 'department_specific' : '',
     target_department_id: user?.role === 'department_admin' ? user.department_id || '' : '',
+    importance: 'medium',
   });
   const [loading, setLoading] = useState(false);
 
@@ -58,6 +60,7 @@ const BroadcastForm: React.FC<BroadcastFormProps> = ({
         message: '',
         target_audience: user?.role === 'department_admin' ? 'department_specific' : '',
         target_department_id: user?.role === 'department_admin' ? user.department_id || '' : '',
+        importance: 'medium',
       });
       onCancel();
     }
@@ -76,13 +79,25 @@ const BroadcastForm: React.FC<BroadcastFormProps> = ({
         { value: 'department_specific', label: 'Specific Department' }
       );
     } else if (user?.role === 'department_admin') {
-      // Department admins can only create broadcasts for their own department
       options.push(
         { value: 'department_specific', label: 'My Department' }
       );
     }
     
     return options;
+  };
+
+  const getImportanceColor = (importance: string) => {
+    switch (importance) {
+      case 'high':
+        return 'text-red-600';
+      case 'medium':
+        return 'text-yellow-600';
+      case 'low':
+        return 'text-blue-600';
+      default:
+        return 'text-gray-600';
+    }
   };
 
   return (
@@ -116,12 +131,36 @@ const BroadcastForm: React.FC<BroadcastFormProps> = ({
           </div>
 
           <div className="space-y-2">
+            <Label htmlFor="importance">Importance Level</Label>
+            <Select
+              value={formData.importance}
+              onValueChange={(value) => setFormData({ ...formData, importance: value })}
+              required
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select importance level" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="low">
+                  <span className={getImportanceColor('low')}>🔵 Low Priority</span>
+                </SelectItem>
+                <SelectItem value="medium">
+                  <span className={getImportanceColor('medium')}>🟡 Medium Priority</span>
+                </SelectItem>
+                <SelectItem value="high">
+                  <span className={getImportanceColor('high')}>🔴 High Priority</span>
+                </SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-2">
             <Label htmlFor="audience">Target Audience</Label>
             <Select
               value={formData.target_audience}
               onValueChange={(value) => setFormData({ ...formData, target_audience: value })}
               required
-              disabled={user?.role === 'department_admin'} // Department admins have fixed audience
+              disabled={user?.role === 'department_admin'}
             >
               <SelectTrigger>
                 <SelectValue placeholder="Select target audience" />

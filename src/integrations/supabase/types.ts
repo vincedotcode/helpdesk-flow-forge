@@ -9,6 +9,48 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      broadcast_notifications: {
+        Row: {
+          broadcast_id: string
+          created_at: string
+          id: string
+          is_read: boolean
+          read_at: string | null
+          user_id: string
+        }
+        Insert: {
+          broadcast_id: string
+          created_at?: string
+          id?: string
+          is_read?: boolean
+          read_at?: string | null
+          user_id: string
+        }
+        Update: {
+          broadcast_id?: string
+          created_at?: string
+          id?: string
+          is_read?: boolean
+          read_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "broadcast_notifications_broadcast_id_fkey"
+            columns: ["broadcast_id"]
+            isOneToOne: false
+            referencedRelation: "broadcasts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "broadcast_notifications_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       broadcast_recipients: {
         Row: {
           broadcast_id: string
@@ -49,6 +91,7 @@ export type Database = {
           created_at: string
           created_by: string
           id: string
+          importance: string | null
           is_active: boolean
           message: string
           target_audience: string
@@ -60,6 +103,7 @@ export type Database = {
           created_at?: string
           created_by: string
           id?: string
+          importance?: string | null
           is_active?: boolean
           message: string
           target_audience: string
@@ -71,6 +115,7 @@ export type Database = {
           created_at?: string
           created_by?: string
           id?: string
+          importance?: string | null
           is_active?: boolean
           message?: string
           target_audience?: string
@@ -536,13 +581,22 @@ export type Database = {
         }[]
       }
       create_broadcast_with_user: {
-        Args: {
-          p_user_id: string
-          p_title: string
-          p_message: string
-          p_target_audience: string
-          p_target_department_id?: string
-        }
+        Args:
+          | {
+              p_user_id: string
+              p_title: string
+              p_message: string
+              p_target_audience: string
+              p_target_department_id?: string
+            }
+          | {
+              p_user_id: string
+              p_title: string
+              p_message: string
+              p_target_audience: string
+              p_target_department_id?: string
+              p_importance?: string
+            }
         Returns: {
           success: boolean
           broadcast_id: string
@@ -562,6 +616,19 @@ export type Database = {
           success: boolean
           user_id: string
           message: string
+        }[]
+      }
+      get_user_broadcast_notifications: {
+        Args: { p_user_id: string }
+        Returns: {
+          id: string
+          broadcast_id: string
+          title: string
+          message: string
+          importance: string
+          is_read: boolean
+          created_at: string
+          broadcast_created_at: string
         }[]
       }
       register_user: {
