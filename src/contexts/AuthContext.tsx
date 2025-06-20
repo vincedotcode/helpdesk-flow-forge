@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { supabase, setAuthToken } from '@/integrations/supabase/client';
 
@@ -24,6 +25,7 @@ interface AuthContextType {
   loading: boolean;
 }
 
+// Create the context with a default value
 const AuthContext = createContext<AuthContextType | null>(null);
 
 export const useAuth = () => {
@@ -67,7 +69,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const checkAuth = async () => {
     try {
       const token = cookieUtils.get('auth_token');
+      console.log('Checking auth with token:', token ? 'present' : 'missing');
+      
       if (!token) {
+        console.log('No auth token found');
         setLoading(false);
         return;
       }
@@ -93,13 +98,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         .eq('session_token', token)
         .single();
 
+      console.log('Session check result:', { data, error });
+
       if (error || !data || new Date(data.expires_at) < new Date()) {
+        console.log('Session invalid or expired');
         cookieUtils.remove('auth_token');
         setAuthToken(null);
         setLoading(false);
         return;
       }
 
+      console.log('Setting user:', data.users);
       setUser(data.users as User);
     } catch (error) {
       console.error('Auth check error:', error);
@@ -216,8 +225,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return Math.random().toString(36).substring(2) + Date.now().toString(36);
   };
 
+  const contextValue: AuthContextType = {
+    user,
+    login,
+    logout,
+    signup,
+    loading
+  };
+
   return (
-    <AuthContext.Provider value={{ user, login, logout, signup, loading }}>
+    <AuthContext.Provider value={contextValue}>
       {children}
     </AuthContext.Provider>
   );
