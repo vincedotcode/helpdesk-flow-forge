@@ -618,6 +618,19 @@ export type Database = {
           message: string
         }[]
       }
+      get_active_broadcasts_for_dashboard: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          id: string
+          title: string
+          message: string
+          importance: string
+          created_at: string
+          target_audience: string
+          creator_name: string
+          department_name: string
+        }[]
+      }
       get_user_broadcast_notifications: {
         Args: { p_user_id: string }
         Returns: {
