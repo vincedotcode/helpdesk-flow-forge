@@ -14,13 +14,13 @@ interface DashboardBroadcastCardProps {
 const getImportanceColor = (importance: string) => {
   switch (importance) {
     case 'high':
-      return 'text-red-600 bg-red-50 border-red-200';
+      return 'bg-red-100 text-red-800 border-red-300 font-bold';
     case 'medium':
-      return 'text-orange-600 bg-orange-50 border-orange-200';
+      return 'bg-orange-100 text-orange-800 border-orange-300 font-semibold';
     case 'low':
-      return 'text-blue-600 bg-blue-50 border-blue-200';
+      return 'bg-blue-100 text-blue-800 border-blue-300 font-medium';
     default:
-      return 'text-gray-600 bg-gray-50 border-gray-200';
+      return 'bg-gray-100 text-gray-800 border-gray-300 font-medium';
   }
 };
 
@@ -29,7 +29,7 @@ const getAudienceLabel = (audience: string, departmentName?: string) => {
     case 'all_users':
       return 'All Users';
     case 'department_admin':
-      return 'Admins';
+      return 'Administrators';
     case 'department_technician':
       return 'Technicians';
     case 'department_specific':
@@ -45,77 +45,87 @@ const DashboardBroadcastCard: React.FC<DashboardBroadcastCardProps> = ({
 }) => {
   if (minimal) {
     return (
-      <div className="border border-gray-200 rounded-lg p-3 hover:bg-gray-50 transition-colors">
-        <div className="flex items-start justify-between gap-3">
+      <article className="border-2 border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition-colors bg-white">
+        <div className="flex items-start justify-between gap-4">
           <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 mb-1">
-              <h4 className="font-medium text-sm text-gray-900 truncate">
+            <div className="flex items-center gap-3 mb-2">
+              <h3 className="font-bold text-base text-gray-900 truncate">
                 {broadcast.title}
-              </h4>
+              </h3>
               <Badge 
                 variant="outline" 
-                className={`text-xs ${getImportanceColor(broadcast.importance)}`}
+                className={`text-xs px-2 py-1 ${getImportanceColor(broadcast.importance)}`}
+                aria-label={`Priority: ${broadcast.importance}`}
               >
-                {broadcast.importance}
+                {broadcast.importance.toUpperCase()}
               </Badge>
             </div>
-            <p className="text-xs text-gray-600 line-clamp-2 mb-2">
+            <p className="text-sm text-gray-700 line-clamp-2 mb-3 font-medium leading-relaxed">
               {broadcast.message}
             </p>
-            <div className="flex items-center gap-3 text-xs text-gray-500">
+            <div className="flex items-center gap-4 text-xs text-gray-600">
               <div className="flex items-center gap-1">
-                <Clock className="w-3 h-3" />
-                {formatDistanceToNow(new Date(broadcast.created_at), { addSuffix: true })}
+                <Clock className="w-4 h-4" aria-hidden="true" />
+                <span className="font-medium">
+                  {formatDistanceToNow(new Date(broadcast.created_at), { addSuffix: true })}
+                </span>
               </div>
               <div className="flex items-center gap-1">
-                <Users className="w-3 h-3" />
-                {getAudienceLabel(broadcast.target_audience, broadcast.department_name)}
+                <Users className="w-4 h-4" aria-hidden="true" />
+                <span className="font-medium">
+                  {getAudienceLabel(broadcast.target_audience, broadcast.department_name)}
+                </span>
               </div>
             </div>
           </div>
         </div>
-      </div>
+      </article>
     );
   }
 
   return (
-    <Card className="hover:shadow-sm transition-shadow">
-      <CardContent className="p-4">
-        <div className="space-y-3">
+    <Card className="hover:shadow-md transition-shadow border-2 border-gray-100">
+      <CardContent className="p-6">
+        <article className="space-y-4">
           <div className="flex items-start justify-between">
-            <h3 className="font-semibold text-gray-900 truncate flex-1">
+            <h3 className="font-bold text-lg text-gray-900 truncate flex-1">
               {broadcast.title}
             </h3>
             <Badge 
               variant="outline" 
-              className={`text-xs ml-2 ${getImportanceColor(broadcast.importance)}`}
+              className={`text-sm ml-3 px-3 py-1 ${getImportanceColor(broadcast.importance)}`}
+              aria-label={`Priority: ${broadcast.importance}`}
             >
-              {broadcast.importance}
+              {broadcast.importance.toUpperCase()}
             </Badge>
           </div>
           
-          <p className="text-sm text-gray-600 line-clamp-2">
+          <p className="text-base text-gray-700 line-clamp-2 font-medium leading-relaxed">
             {broadcast.message}
           </p>
           
-          <div className="flex items-center justify-between text-xs text-gray-500">
-            <div className="flex items-center gap-4">
-              <div className="flex items-center gap-1">
-                <Clock className="w-3 h-3" />
-                {formatDistanceToNow(new Date(broadcast.created_at), { addSuffix: true })}
+          <div className="flex items-center justify-between text-sm text-gray-600">
+            <div className="flex items-center gap-6">
+              <div className="flex items-center gap-2">
+                <Clock className="w-4 h-4" aria-hidden="true" />
+                <span className="font-medium">
+                  {formatDistanceToNow(new Date(broadcast.created_at), { addSuffix: true })}
+                </span>
               </div>
-              <div className="flex items-center gap-1">
-                <Users className="w-3 h-3" />
-                {getAudienceLabel(broadcast.target_audience, broadcast.department_name)}
+              <div className="flex items-center gap-2">
+                <Users className="w-4 h-4" aria-hidden="true" />
+                <span className="font-medium">
+                  {getAudienceLabel(broadcast.target_audience, broadcast.department_name)}
+                </span>
               </div>
             </div>
             {broadcast.creator_name && (
-              <span className="text-xs text-gray-500">
-                {broadcast.creator_name}
+              <span className="text-sm text-gray-600 font-medium">
+                By {broadcast.creator_name}
               </span>
             )}
           </div>
-        </div>
+        </article>
       </CardContent>
     </Card>
   );

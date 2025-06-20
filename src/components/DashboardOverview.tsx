@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -98,119 +99,155 @@ const DashboardOverview: React.FC = () => {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-96">
-        <div className="text-muted-foreground">Loading dashboard...</div>
+        <div className="text-lg font-medium text-gray-600" role="status" aria-live="polite">
+          Loading dashboard...
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-8">
-      {/* Minimalistic Welcome Section */}
-      <div className="border-l-4 border-l-blue-500 pl-6 py-4">
-        <h1 className="text-2xl font-semibold text-gray-900 mb-1">
+    <div className="space-y-8 font-sans">
+      {/* Welcome Section with Better Typography */}
+      <header className="bg-white border border-gray-200 rounded-lg p-6">
+        <h1 className="text-3xl font-bold text-gray-900 mb-2 tracking-tight">
           {getGreeting()}, {user?.first_name}
         </h1>
-        <p className="text-gray-600 mb-2">Welcome back to the Help Desk System</p>
-        <Badge variant="outline" className="text-xs">
+        <p className="text-lg text-gray-700 font-medium mb-3">
+          Welcome to your Help Desk Dashboard
+        </p>
+        <Badge variant="outline" className="text-sm font-semibold px-3 py-1">
           {getRoleDisplayName(user?.role || '')}
         </Badge>
-      </div>
+      </header>
 
-      {/* Clean Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card className="hover:shadow-sm transition-shadow">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600 mb-1">Total Tickets</p>
-                <p className="text-2xl font-semibold">{stats.totalTickets}</p>
-              </div>
-              <Ticket className="h-5 w-5 text-gray-400" />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="hover:shadow-sm transition-shadow">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600 mb-1">Open Tickets</p>
-                <p className="text-2xl font-semibold">{stats.openTickets}</p>
-              </div>
-              <Clock className="h-5 w-5 text-gray-400" />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="hover:shadow-sm transition-shadow">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600 mb-1">Urgent Tickets</p>
-                <p className="text-2xl font-semibold">{stats.urgentTickets}</p>
-              </div>
-              <AlertTriangle className="h-5 w-5 text-gray-400" />
-            </div>
-          </CardContent>
-        </Card>
-
-        {(user?.role === 'super_admin' || user?.role === 'department_admin') && (
-          <Card className="hover:shadow-sm transition-shadow">
-            <CardContent className="p-4">
+      {/* Improved Stats Grid with Better Typography */}
+      <section aria-label="Dashboard Statistics">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <Card className="border-2 border-gray-100 hover:border-gray-200 transition-colors">
+            <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-gray-600 mb-1">Total Users</p>
-                  <p className="text-2xl font-semibold">{stats.totalUsers}</p>
+                  <p className="text-sm font-semibold text-gray-600 uppercase tracking-wider mb-2">
+                    Total Tickets
+                  </p>
+                  <p className="text-3xl font-bold text-gray-900" aria-label={`${stats.totalTickets} total tickets`}>
+                    {stats.totalTickets}
+                  </p>
                 </div>
-                <Users className="h-5 w-5 text-gray-400" />
+                <div className="p-3 bg-blue-50 rounded-full">
+                  <Ticket className="h-6 w-6 text-blue-600" aria-hidden="true" />
+                </div>
               </div>
             </CardContent>
           </Card>
-        )}
-      </div>
 
-      {/* Broadcast Notifications Section */}
+          <Card className="border-2 border-gray-100 hover:border-gray-200 transition-colors">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-semibold text-gray-600 uppercase tracking-wider mb-2">
+                    Open Tickets
+                  </p>
+                  <p className="text-3xl font-bold text-gray-900" aria-label={`${stats.openTickets} open tickets`}>
+                    {stats.openTickets}
+                  </p>
+                </div>
+                <div className="p-3 bg-orange-50 rounded-full">
+                  <Clock className="h-6 w-6 text-orange-600" aria-hidden="true" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="border-2 border-gray-100 hover:border-gray-200 transition-colors">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-semibold text-gray-600 uppercase tracking-wider mb-2">
+                    Urgent Tickets
+                  </p>
+                  <p className="text-3xl font-bold text-red-600" aria-label={`${stats.urgentTickets} urgent tickets`}>
+                    {stats.urgentTickets}
+                  </p>
+                </div>
+                <div className="p-3 bg-red-50 rounded-full">
+                  <AlertTriangle className="h-6 w-6 text-red-600" aria-hidden="true" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {(user?.role === 'super_admin' || user?.role === 'department_admin') && (
+            <Card className="border-2 border-gray-100 hover:border-gray-200 transition-colors">
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-semibold text-gray-600 uppercase tracking-wider mb-2">
+                      Total Users
+                    </p>
+                    <p className="text-3xl font-bold text-gray-900" aria-label={`${stats.totalUsers} total users`}>
+                      {stats.totalUsers}
+                    </p>
+                  </div>
+                  <div className="p-3 bg-green-50 rounded-full">
+                    <Users className="h-6 w-6 text-green-600" aria-hidden="true" />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+        </div>
+      </section>
+
+      {/* Broadcast Section */}
       <DashboardBroadcastSection />
 
       {/* Personal Notifications */}
       <BroadcastNotifications />
 
-      {/* Simple Activity Section */}
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-lg flex items-center gap-2">
-            <TrendingUp className="w-4 h-4" />
-            Activity
+      {/* Activity Section with Better Typography */}
+      <Card className="border-2 border-gray-100">
+        <CardHeader className="pb-4">
+          <CardTitle className="text-xl font-bold flex items-center gap-3 text-gray-900">
+            <div className="p-2 bg-blue-50 rounded-lg">
+              <TrendingUp className="w-5 h-5 text-blue-600" aria-hidden="true" />
+            </div>
+            System Activity
           </CardTitle>
         </CardHeader>
         <CardContent className="pt-0">
-          <div className="flex items-center justify-between py-2">
-            <span className="text-sm text-gray-600">New tickets (24h)</span>
-            <Badge variant="secondary">{stats.recentActivity}</Badge>
-          </div>
-          <div className="flex items-center justify-between py-2">
-            <span className="text-sm text-gray-600">System Status</span>
-            <div className="flex items-center gap-2">
-              <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-              <span className="text-sm text-gray-600">Operational</span>
+          <div className="space-y-4">
+            <div className="flex items-center justify-between py-3 border-b border-gray-100">
+              <span className="text-base font-medium text-gray-700">New tickets today</span>
+              <Badge variant="secondary" className="text-base font-bold px-3 py-1">
+                {stats.recentActivity}
+              </Badge>
+            </div>
+            <div className="flex items-center justify-between py-3">
+              <span className="text-base font-medium text-gray-700">System Status</span>
+              <div className="flex items-center gap-3">
+                <div className="w-3 h-3 bg-green-500 rounded-full" aria-hidden="true"></div>
+                <span className="text-base font-semibold text-green-700">All Systems Operational</span>
+              </div>
             </div>
           </div>
         </CardContent>
       </Card>
 
-      {/* Simple Quick Actions */}
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-lg">Quick Actions</CardTitle>
+      {/* Quick Actions with Better Typography */}
+      <Card className="border-2 border-gray-100">
+        <CardHeader className="pb-4">
+          <CardTitle className="text-xl font-bold text-gray-900">Quick Actions</CardTitle>
         </CardHeader>
         <CardContent className="pt-0">
-          <div className="flex flex-wrap gap-3">
+          <div className="flex flex-wrap gap-4">
             <Button 
               onClick={() => navigate('/dashboard/tickets')}
-              variant="outline"
-              size="sm"
+              size="lg"
+              className="font-semibold text-base px-6 py-3"
             >
-              View Tickets
+              View All Tickets
             </Button>
             
             {(user?.role === 'super_admin' || user?.role === 'department_admin') && (
@@ -218,17 +255,19 @@ const DashboardOverview: React.FC = () => {
                 <Button 
                   onClick={() => navigate('/dashboard/analytics')}
                   variant="outline"
-                  size="sm"
+                  size="lg"
+                  className="font-semibold text-base px-6 py-3"
                 >
-                  Analytics
+                  View Analytics
                 </Button>
                 
                 <Button 
                   onClick={() => navigate('/dashboard/broadcasts')}
                   variant="outline"
-                  size="sm"
+                  size="lg"
+                  className="font-semibold text-base px-6 py-3"
                 >
-                  Broadcasts
+                  Manage Broadcasts
                 </Button>
               </>
             )}
