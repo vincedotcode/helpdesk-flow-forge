@@ -40,26 +40,38 @@ export const useBroadcasts = () => {
 
     try {
       setLoading(true);
-      const { data, error } = await supabase
+      
+      // Fetch broadcasts with creator and department info
+      const { data: broadcastsData, error: broadcastsError } = await supabase
         .from('broadcasts')
-        .select(`
-          *,
-          creator:created_by(first_name, last_name),
-          department:target_department_id(name)
-        `)
+        .select('*')
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
-      
-      // Type the data properly to match our Broadcast interface
-      const typedBroadcasts: Broadcast[] = (data || []).map(item => ({
-        ...item,
-        target_audience: item.target_audience as Broadcast['target_audience'],
-        creator: Array.isArray(item.creator) ? item.creator[0] : item.creator,
-        department: Array.isArray(item.department) ? item.department[0] : item.department
+      if (broadcastsError) throw broadcastsError;
+
+      // Fetch creators info separately
+      const creatorIds = [...new Set(broadcastsData?.map(b => b.created_by) || [])];
+      const { data: creatorsData } = await supabase
+        .from('users')
+        .select('id, first_name, last_name')
+        .in('id', creatorIds);
+
+      // Fetch departments info separately
+      const departmentIds = [...new Set(broadcastsData?.filter(b => b.target_department_id).map(b => b.target_department_id) || [])];
+      const { data: departmentsData } = await supabase
+        .from('departments')
+        .select('id, name')
+        .in('id', departmentIds);
+
+      // Combine the data
+      const enrichedBroadcasts: Broadcast[] = (broadcastsData || []).map(broadcast => ({
+        ...broadcast,
+        target_audience: broadcast.target_audience as Broadcast['target_audience'],
+        creator: creatorsData?.find(c => c.id === broadcast.created_by),
+        department: departmentsData?.find(d => d.id === broadcast.target_department_id)
       }));
       
-      setBroadcasts(typedBroadcasts);
+      setBroadcasts(enrichedBroadcasts);
     } catch (error) {
       console.error('Error fetching broadcasts:', error);
       toast({
