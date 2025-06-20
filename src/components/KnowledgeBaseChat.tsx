@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -133,18 +134,23 @@ const KnowledgeBaseChat: React.FC = () => {
     setMessages(prev => [...prev, tempMessage]);
 
     try {
-      const { data, error } = await supabase.functions.invoke('ai-knowledge-assistant', {
-        body: {
+      const response = await fetch('https://wstjpdjhpclpaczphpis.supabase.co/functions/v1/ai-knowledge-assistant', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
           message: userMessage,
           sessionId: activeSessionId,
           userId: user.id
-        }
+        })
       });
 
-      if (error) {
-        console.error('Edge function error:', error);
-        throw error;
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
       }
+
+      const data = await response.json();
 
       setMessages(prev => prev.slice(0, -1));
       
