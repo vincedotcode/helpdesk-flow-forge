@@ -19,7 +19,44 @@ serve(async (req) => {
 
   try {
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
+    
+    // Get the authorization header
+    const authHeader = req.headers.get('authorization');
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      throw new Error('Missing or invalid authorization header');
+    }
+    
+    const sessionToken = authHeader.replace('Bearer ', '');
+    
+    // Validate the session token against the user_sessions table
+    const { data: sessionData, error: sessionError } = await supabase
+      .from('user_sessions')
+      .select(`
+        user_id,
+        expires_at,
+        users!inner(
+          id,
+          email,
+          first_name,
+          last_name,
+          role,
+          department_id,
+          is_active
+        )
+      `)
+      .eq('session_token', sessionToken)
+      .single();
+
+    if (sessionError || !sessionData || new Date(sessionData.expires_at) < new Date()) {
+      throw new Error('Invalid or expired session');
+    }
+
     const { message, sessionId, userId } = await req.json();
+
+    // Verify the userId matches the session
+    if (userId !== sessionData.user_id) {
+      throw new Error('User ID mismatch');
+    }
 
     console.log('Processing knowledge base query:', { message, sessionId, userId });
 
@@ -32,18 +69,6 @@ serve(async (req) => {
     if (articlesError) {
       console.error('Error fetching knowledge articles:', articlesError);
       throw articlesError;
-    }
-
-    // Get user information for ticket creation if needed
-    const { data: user, error: userError } = await supabase
-      .from('users')
-      .select('id, first_name, last_name, email, department_id')
-      .eq('id', userId)
-      .single();
-
-    if (userError) {
-      console.error('Error fetching user:', userError);
-      throw userError;
     }
 
     // Create knowledge context from articles
@@ -112,7 +137,7 @@ Issue Description: ${ticketDescription}`,
           status: 'open',
           priority: 'medium',
           created_by: userId,
-          department_id: user.department_id,
+          department_id: sessionData.users.department_id,
         })
         .select()
         .single();

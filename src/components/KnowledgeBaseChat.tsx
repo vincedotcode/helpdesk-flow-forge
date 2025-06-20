@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -133,10 +134,10 @@ const KnowledgeBaseChat: React.FC = () => {
     setMessages(prev => [...prev, tempMessage]);
 
     try {
-      // Get the current session token from the supabase client
-      const { data: { session } } = await supabase.auth.getSession();
+      // Get the custom session token from localStorage
+      const token = localStorage.getItem('cookie_auth_token');
       
-      if (!session?.access_token) {
+      if (!token) {
         throw new Error('No valid session found');
       }
 
@@ -147,7 +148,7 @@ const KnowledgeBaseChat: React.FC = () => {
           userId: user.id
         },
         headers: {
-          Authorization: `Bearer ${session.access_token}`
+          Authorization: `Bearer ${token}`
         }
       });
 
