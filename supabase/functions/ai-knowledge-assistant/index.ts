@@ -95,8 +95,17 @@ User question: ${message}`;
         .eq('id', userId)
         .single();
 
-      if (!userError && userInfo) {
-        // Create a ticket automatically
+      if (!userError && userInfo && userInfo.department_id) {
+        // Find department admin for the user's department
+        const { data: departmentAdmin, error: adminError } = await supabase
+          .from('users')
+          .select('id')
+          .eq('department_id', userInfo.department_id)
+          .eq('role', 'department_admin')
+          .eq('is_active', true)
+          .single();
+
+        // Create a ticket automatically and assign to department admin
         const { data: ticket, error: ticketError } = await supabase
           .from('tickets')
           .insert({
@@ -110,6 +119,44 @@ Issue Description: ${ticketDescription}`,
             priority: 'medium',
             created_by: userId,
             department_id: userInfo.department_id,
+            assigned_to: departmentAdmin?.id || null, // Assign to department admin if found
+          })
+          .select()
+          .single();
+
+        if (ticketError) {
+          console.error('Error creating ticket:', ticketError);
+          aiResponse = "I understand you need help with this issue. Unfortunately, I couldn't automatically create a support ticket right now. Please contact your system administrator or create a ticket manually.";
+        } else {
+          ticketCreated = true;
+          ticketId = ticket.id;
+          const assignmentText = departmentAdmin 
+            ? " and has been assigned to your department admin for review" 
+            : "";
+          
+          aiResponse = `I've automatically created a support ticket for your issue (Ticket #${ticket.id})${assignmentText}. Our technical team will review it and get back to you soon. 
+
+Your ticket details:
+- Title: ${ticket.title}
+- Status: ${ticket.status}
+- Priority: ${ticket.priority}
+
+You can track the progress of your ticket in the dashboard.`;
+        }
+      } else {
+        // Fallback if user department not found
+        const { data: ticket, error: ticketError } = await supabase
+          .from('tickets')
+          .insert({
+            title: `Auto-generated: ${ticketDescription.substring(0, 50)}...`,
+            description: `This ticket was automatically created from a knowledge base interaction.
+
+User Question: ${message}
+
+Issue Description: ${ticketDescription}`,
+            status: 'open',
+            priority: 'medium',
+            created_by: userId,
           })
           .select()
           .single();
