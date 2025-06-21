@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -35,8 +34,10 @@ export const useTicketManagement = () => {
         // End users can only see tickets they created
         query = query.eq('created_by', user.id);
       } else if (user?.role === 'department_technician') {
-        // Department technicians can only see tickets assigned specifically to them
-        query = query.eq('assigned_to', user.id);
+        // Department technicians can see:
+        // 1. Tickets assigned specifically to them
+        // 2. Tickets in their department that are unassigned or assigned to department admin
+        query = query.or(`assigned_to.eq.${user.id},and(department_id.eq.${user.department_id},or(assigned_to.is.null,assigned_to.neq.${user.id}))`);
       } else if (user?.role === 'department_admin' && user.department_id) {
         // Department admins can see tickets in their department that are:
         // 1. Created by someone and assigned to their department
