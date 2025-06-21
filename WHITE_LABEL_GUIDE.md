@@ -37,9 +37,27 @@ This helpdesk platform is designed to be easily white-labeled for different clie
 ### Features & Benefits
 - `features`: Array of key features for the landing page
 
-### Styling
-- `theme`: Primary, secondary, and accent colors
-- Colors should be in hex format (#rrggbb)
+### Theme Colors
+The theme object contains all the colors used throughout the application:
+
+#### Main Colors
+- `primary`: Primary brand color (buttons, links, highlights)
+- `secondary`: Secondary color for less prominent elements
+- `accent`: Accent color for special highlights
+- `background`: Main background color
+- `foreground`: Main text color
+- `muted`: Muted backgrounds and subtle elements
+- `destructive`: Error/danger color
+- `border`: Border color for inputs and separators
+
+#### Sidebar Colors
+- `sidebar.background`: Sidebar background color
+- `sidebar.foreground`: Sidebar text color
+- `sidebar.primary`: Sidebar primary elements
+- `sidebar.accent`: Sidebar accent elements
+- `sidebar.border`: Sidebar borders
+
+**Color Format**: All colors should be in hex format (#rrggbb). The system automatically converts them to HSL for CSS custom properties.
 
 ### Social Media
 - `social`: Optional social media links
@@ -52,13 +70,29 @@ This helpdesk platform is designed to be easily white-labeled for different clie
 - `public/sitemap.xml` - Domain references
 - `public/robots.txt` - Domain references
 
+## Theme Customization
+
+The theme system automatically applies your brand colors throughout the application:
+
+1. **Light/Dark Mode**: The system supports both light and dark themes
+2. **Dynamic Colors**: All UI components automatically use your brand colors
+3. **Sidebar Theming**: Sidebar has its own color scheme for better contrast
+4. **Accessibility**: Colors are automatically adjusted for proper contrast ratios
+
+### Color Selection Tips
+
+- Choose colors with sufficient contrast for accessibility
+- Test both light and dark modes
+- Ensure your primary color works well with white and dark backgrounds
+- Consider your brand's existing color palette
+
 ## CSS Customization
 
-To further customize the appearance:
+For advanced customization beyond colors:
 
-1. Update the theme colors in `src/config/branding.ts`
-2. The colors are automatically applied to meta tags for browser theming
-3. For deeper customization, modify the Tailwind configuration
+1. The theme colors are applied via CSS custom properties
+2. You can override specific styles in `src/index.css`
+3. All components use Tailwind CSS classes that respect the theme
 
 ## Deployment Checklist
 
@@ -67,6 +101,8 @@ Before deploying for a client:
 - [ ] Update all branding configuration values
 - [ ] Replace favicon and icons
 - [ ] Update domain in robots.txt and sitemap.xml
+- [ ] Test all theme colors in light and dark mode
+- [ ] Verify color contrast for accessibility
 - [ ] Test all functionality
 - [ ] Verify SEO tags are correct
 - [ ] Check social media previews

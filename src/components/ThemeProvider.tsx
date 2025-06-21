@@ -1,5 +1,6 @@
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
+import { applyBrandingTheme } from '@/utils/themeUtils';
 
 type Theme = 'dark' | 'light' | 'system';
 
@@ -36,6 +37,9 @@ export function ThemeProvider({
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
+    
+    // Apply branding theme colors first
+    applyBrandingTheme();
     
     const root = window.document.documentElement;
 
