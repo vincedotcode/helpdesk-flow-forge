@@ -16,6 +16,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import NotificationBell from '@/components/NotificationBell';
+import { brandingConfig } from '@/config/branding';
 import { 
   LayoutDashboard, 
   Users, 
@@ -105,7 +106,7 @@ export function AppSidebar({ activeTab, onTabChange }: AppSidebarProps) {
         <div className="flex flex-col gap-2 p-2">
           <div className="flex items-center justify-between">
             <h2 className="text-lg font-semibold text-sidebar-foreground">
-              Helpdesk Pro
+              {brandingConfig.productName}
             </h2>
             <NotificationBell />
           </div>

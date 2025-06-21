@@ -4,26 +4,26 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>HelpDesk Flow Forge - Professional IT Support Management</title>
-    <meta name="description" content="Comprehensive helpdesk management system with ticket tracking, knowledge base, user management, and analytics. Streamline your IT support operations with advanced workflow automation." />
-    <meta name="keywords" content="helpdesk, IT support, ticket management, knowledge base, user management, analytics, workflow automation" />
-    <meta name="author" content="HelpDesk Flow Forge" />
+    <title id="page-title">HelpDesk Flow Forge - Professional IT Support Management</title>
+    <meta id="page-description" name="description" content="Comprehensive helpdesk management system with ticket tracking, knowledge base, user management, and analytics. Streamline your IT support operations with advanced workflow automation." />
+    <meta id="page-keywords" name="keywords" content="helpdesk, IT support, ticket management, knowledge base, user management, analytics, workflow automation" />
+    <meta id="page-author" name="author" content="HelpDesk Flow Forge" />
     <meta name="robots" content="index, follow" />
     
     <!-- Open Graph / Facebook -->
     <meta property="og:type" content="website" />
-    <meta property="og:url" content="https://helpdesk-flow-forge.lovable.app/" />
-    <meta property="og:title" content="HelpDesk Flow Forge - Professional IT Support Management" />
-    <meta property="og:description" content="Comprehensive helpdesk management system with ticket tracking, knowledge base, user management, and analytics. Streamline your IT support operations." />
-    <meta property="og:image" content="https://helpdesk-flow-forge.lovable.app/og-image.png" />
-    <meta property="og:site_name" content="HelpDesk Flow Forge" />
+    <meta id="og-url" property="og:url" content="https://helpdesk-flow-forge.lovable.app/" />
+    <meta id="og-title" property="og:title" content="HelpDesk Flow Forge - Professional IT Support Management" />
+    <meta id="og-description" property="og:description" content="Comprehensive helpdesk management system with ticket tracking, knowledge base, user management, and analytics. Streamline your IT support operations." />
+    <meta id="og-image" property="og:image" content="https://helpdesk-flow-forge.lovable.app/og-image.png" />
+    <meta id="og-site-name" property="og:site_name" content="HelpDesk Flow Forge" />
 
     <!-- Twitter -->
     <meta property="twitter:card" content="summary_large_image" />
-    <meta property="twitter:url" content="https://helpdesk-flow-forge.lovable.app/" />
-    <meta property="twitter:title" content="HelpDesk Flow Forge - Professional IT Support Management" />
-    <meta property="twitter:description" content="Comprehensive helpdesk management system with ticket tracking, knowledge base, user management, and analytics." />
-    <meta property="twitter:image" content="https://helpdesk-flow-forge.lovable.app/og-image.png" />
+    <meta id="twitter-url" property="twitter:url" content="https://helpdesk-flow-forge.lovable.app/" />
+    <meta id="twitter-title" property="twitter:title" content="HelpDesk Flow Forge - Professional IT Support Management" />
+    <meta id="twitter-description" property="twitter:description" content="Comprehensive helpdesk management system with ticket tracking, knowledge base, user management, and analytics." />
+    <meta id="twitter-image" property="twitter:image" content="https://helpdesk-flow-forge.lovable.app/og-image.png" />
 
     <!-- Favicon -->
     <link rel="icon" type="image/x-icon" href="/favicon.ico" />
@@ -32,8 +32,8 @@
     <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" />
 
     <!-- Theme Color -->
-    <meta name="theme-color" content="#2563eb" />
-    <meta name="msapplication-TileColor" content="#2563eb" />
+    <meta id="theme-color" name="theme-color" content="#2563eb" />
+    <meta id="ms-tile-color" name="msapplication-TileColor" content="#2563eb" />
 
     <!-- Preconnect for performance -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -43,5 +43,33 @@
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
+    <script type="module">
+      // Apply branding configuration to HTML meta tags
+      import { brandingConfig } from '/src/config/branding.ts';
+      
+      // Update page title and meta tags
+      document.getElementById('page-title').textContent = `${brandingConfig.companyName} - ${brandingConfig.tagline}`;
+      document.getElementById('page-description').setAttribute('content', brandingConfig.description);
+      document.getElementById('page-keywords').setAttribute('content', brandingConfig.keywords.join(', '));
+      document.getElementById('page-author').setAttribute('content', brandingConfig.author);
+      
+      // Update Open Graph tags
+      const baseUrl = `https://${brandingConfig.domain}/`;
+      document.getElementById('og-url').setAttribute('content', baseUrl);
+      document.getElementById('og-title').setAttribute('content', `${brandingConfig.companyName} - ${brandingConfig.tagline}`);
+      document.getElementById('og-description').setAttribute('content', brandingConfig.description);
+      document.getElementById('og-image').setAttribute('content', `${baseUrl}og-image.png`);
+      document.getElementById('og-site-name').setAttribute('content', brandingConfig.companyName);
+      
+      // Update Twitter tags
+      document.getElementById('twitter-url').setAttribute('content', baseUrl);
+      document.getElementById('twitter-title').setAttribute('content', `${brandingConfig.companyName} - ${brandingConfig.tagline}`);
+      document.getElementById('twitter-description').setAttribute('content', brandingConfig.description);
+      document.getElementById('twitter-image').setAttribute('content', `${baseUrl}og-image.png`);
+      
+      // Update theme colors
+      document.getElementById('theme-color').setAttribute('content', brandingConfig.theme.primary);
+      document.getElementById('ms-tile-color').setAttribute('content', brandingConfig.theme.primary);
+    </script>
   </body>
 </html>

@@ -4,6 +4,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { brandingConfig } from '@/config/branding';
 
 const Index = () => {
   const { user, loading } = useAuth();
@@ -34,21 +35,22 @@ const Index = () => {
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100">
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
-          <CardTitle className="text-3xl font-bold text-gray-900">Helpdesk Platform</CardTitle>
+          <CardTitle className="text-3xl font-bold text-gray-900">
+            {brandingConfig.companyName}
+          </CardTitle>
           <CardDescription className="text-lg">
-            Professional support ticket management system
+            {brandingConfig.tagline}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
           <div className="text-center space-y-4">
             <p className="text-gray-600">
-              Streamline your support operations with our comprehensive helpdesk solution.
+              {brandingConfig.description.split('.')[0]}.
             </p>
             <div className="space-y-2 text-sm text-gray-500">
-              <p>✓ Multi-role user management</p>
-              <p>✓ Department-based organization</p>
-              <p>✓ Advanced ticket tracking</p>
-              <p>✓ Real-time collaboration</p>
+              {brandingConfig.features.map((feature, index) => (
+                <p key={index}>✓ {feature}</p>
+              ))}
             </div>
           </div>
           <div className="space-y-3">
@@ -61,7 +63,7 @@ const Index = () => {
             </Button>
             <div className="text-center">
               <p className="text-xs text-gray-500">
-                Demo Admin: admin@helpdesk.com / admin123
+                Demo Admin: {brandingConfig.demoAdmin.email} / {brandingConfig.demoAdmin.password}
               </p>
             </div>
           </div>
