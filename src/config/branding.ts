@@ -24,25 +24,6 @@ export interface BrandingConfig {
   // Features/Benefits (for landing page)
   features: string[];
   
-  // Colors and Styling
-  theme: {
-    primary: string;
-    secondary: string;
-    accent: string;
-    background: string;
-    foreground: string;
-    muted: string;
-    destructive: string;
-    border: string;
-    sidebar: {
-      background: string;
-      foreground: string;
-      primary: string;
-      accent: string;
-      border: string;
-    };
-  };
-  
   // Social Media
   social: {
     twitter?: string;
@@ -84,24 +65,6 @@ export const brandingConfig: BrandingConfig = {
     "Advanced ticket tracking",
     "Real-time collaboration"
   ],
-  
-  theme: {
-    primary: "#2563eb",
-    secondary: "#64748b", 
-    accent: "#06b6d4",
-    background: "#ffffff",
-    foreground: "#0f172a",
-    muted: "#f1f5f9",
-    destructive: "#dc2626",
-    border: "#e2e8f0",
-    sidebar: {
-      background: "#f8fafc",
-      foreground: "#334155",
-      primary: "#1e293b",
-      accent: "#f1f5f9",
-      border: "#e2e8f0"
-    }
-  },
   
   social: {
     twitter: "https://twitter.com/helpdeskpro",
