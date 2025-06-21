@@ -45,7 +45,7 @@ interface EnhancedTicket {
 }
 
 const TicketDetails = () => {
-  const { ticketId } = useParams<{ ticketId: string }>();
+  const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { user } = useAuth();
   const { toast } = useToast();
@@ -54,10 +54,10 @@ const TicketDetails = () => {
   const [accessDenied, setAccessDenied] = useState(false);
 
   useEffect(() => {
-    if (ticketId) {
+    if (id) {
       fetchTicket();
     }
-  }, [ticketId]);
+  }, [id]);
 
   const checkTicketAccess = (ticketData: any): boolean => {
     if (!user) return false;
@@ -82,7 +82,7 @@ const TicketDetails = () => {
   };
 
   const fetchTicket = async () => {
-    if (!ticketId) return;
+    if (!id) return;
 
     try {
       const { data, error } = await supabase
@@ -93,7 +93,7 @@ const TicketDetails = () => {
           assigned_to:users!tickets_assigned_to_fkey(id, first_name, last_name, role),
           departments(name)
         `)
-        .eq('id', ticketId)
+        .eq('id', id)
         .single();
 
       if (error) throw error;
