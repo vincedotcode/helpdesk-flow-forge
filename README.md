@@ -1,73 +1,31 @@
-# Welcome to your Lovable project
+# Helpdesk Flow Forge
 
-## Project info
+Helpdesk Flow Forge is a modern helpdesk application for managing customer-support tickets.  It’s built with [Vite](https://vitejs.dev/) and [React](https://react.dev/) using TypeScript, and leverages [Supabase](https://supabase.com/) for authentication and database services.  The UI uses [shadcn/ui](https://ui.shadcn.com/) components and Tailwind CSS to deliver an accessible, professional interface.
 
-**URL**: https://lovable.dev/projects/eda24b93-6681-4675-8789-7440d64d6e5f
+## ✨ Features
 
-## How can I edit this code?
+- **Ticket creation & management** – customers can submit support requests and monitor their status.
+- **Real‑time updates** – Supabase real-time subscriptions keep tickets and comments in sync across clients.
+- **Authentication** – robust sign‑up/login/logout flows powered by Supabase Auth.
+- **Role‑based access control** – designate customers, support agents, and admins.
+- **Rich UI components** – built with shadcn/ui and Radix primitives on Tailwind CSS.
+- **Search & filters** – quickly find tickets by status, priority, or assigned agent.
+- **Dark mode** – built‑in dark/light theme support.
+- **Responsive design** – works great on desktop and mobile.
 
-There are several ways of editing your application.
+## 📦 Tech Stack
 
-**Use Lovable**
+- **Frontend**: Vite, React, TypeScript  
+- **Styling**: Tailwind CSS, shadcn/ui  
+- **Data & Auth**: Supabase (database, authentication, real-time subscriptions)  
+- **State/Data**: TanStack Query (React Query)  
+- **Other Tools**: Radix UI primitives, Lucide icons
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/eda24b93-6681-4675-8789-7440d64d6e5f) and start prompting.
+## 🚀 Getting Started
 
-Changes made via Lovable will be committed automatically to this repo.
+### Prerequisites
 
-**Use your preferred IDE**
+- **Node.js** 18+ with npm or [pnpm](https://pnpm.io) installed.  
+- A Supabase project with a public `anon` key and `URL`.
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
-
-Follow these steps:
-
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
-
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
-
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
-```
-
-**Edit a file directly in GitHub**
-
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
-
-**Use GitHub Codespaces**
-
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
-
-## What technologies are used for this project?
-
-This project is built with:
-
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
-
-## How can I deploy this project?
-
-Simply open [Lovable](https://lovable.dev/projects/eda24b93-6681-4675-8789-7440d64d6e5f) and click on Share -> Publish.
-
-## Can I connect a custom domain to my Lovable project?
-
-Yes, you can!
-
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
-
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
