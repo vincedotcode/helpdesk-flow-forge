@@ -3,8 +3,8 @@
 import { createClient } from '@supabase/supabase-js';
 import type { Database } from './types';
 
-const SUPABASE_URL = "https://wstjpdjhpclpaczphpis.supabase.co";
-const SUPABASE_PUBLISHABLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndzdGpwZGpocGNscGFjenBocGlzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDk3ODk0MTUsImV4cCI6MjA2NTM2NTQxNX0.IdICLNUl2KB1S_EBTFuL3Pf0dUbB6p-uHWwPzEzxjI8";
+const SUPABASE_URL = "https://xnbulywcwjtinnmbxdug.supabase.co";
+const SUPABASE_PUBLISHABLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhuYnVseXdjd2p0aW5ubWJ4ZHVnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjMzNTYwOTMsImV4cCI6MjA3ODkzMjA5M30.0n7EoFoeIJbMfJLmebXczlMi_OlEL8qlMIWkn096XQA";
 
 // Cookie utilities using localStorage as fallback
 const cookieUtils = {
