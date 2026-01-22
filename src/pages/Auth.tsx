@@ -111,40 +111,62 @@ const Auth = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-background to-muted p-4">
-      <div className="absolute top-4 left-4">
-        <Link to="/">
-          <Button variant="ghost" size="sm" className="gap-2">
+    <div className="min-h-screen bg-[radial-gradient(circle_at_top,_hsl(var(--muted))_0%,_hsl(var(--background))_45%)] px-4 py-10">
+      <div className="container mx-auto">
+        <div className="flex items-center justify-between pb-6 animate-fade-in">
+          <Link to="/" className="inline-flex items-center gap-2 text-sm text-primary hover:text-primary/80">
             <ArrowLeft className="h-4 w-4" />
             Back to Home
-          </Button>
-        </Link>
-      </div>
-      <div className="absolute top-4 right-4">
-        <ThemeToggle />
-      </div>
-      
-      <Card className="w-full max-w-md shadow-2xl border-0 bg-card/80 backdrop-blur-sm">
-        <CardHeader className="text-center space-y-4 pb-6">
-          <div className="w-12 h-12 bg-primary rounded-full mx-auto flex items-center justify-center">
-            <div className="w-6 h-6 bg-primary-foreground rounded-full"></div>
+          </Link>
+          <ThemeToggle />
+        </div>
+
+        <div className="grid items-start gap-10 lg:grid-cols-[1.1fr_0.9fr]">
+          <div className="space-y-6 animate-fade-up">
+            <div className="flex items-center gap-3">
+              <img
+                src="/utm-logo.png"
+                alt="University of Technology, Mauritius"
+                className="h-12 w-auto"
+              />
+              <div>
+                <p className="text-[10px] uppercase tracking-[0.35em] text-primary/70">
+                  University of Technology, Mauritius
+                </p>
+                <h1 className="text-2xl font-semibold text-primary">Helpdesk Service Portal</h1>
+              </div>
+            </div>
+            <p className="text-lg text-muted-foreground">
+              Sign in to access the institutional support hub, knowledge base, and service analytics.
+            </p>
+            <div className="grid gap-4 text-sm text-muted-foreground">
+              <div className="rounded-lg border border-primary/10 bg-white/80 p-4">
+                <p className="text-sm font-semibold text-primary">Secure Access</p>
+                <p className="mt-1 text-xs">
+                  Your credentials are protected and audited for compliance.
+                </p>
+              </div>
+              <div className="rounded-lg border border-primary/10 bg-white/80 p-4">
+                <p className="text-sm font-semibold text-primary">Quick Support</p>
+                <p className="mt-1 text-xs">
+                  Fast routing, automated knowledge, and transparent SLAs.
+                </p>
+              </div>
+            </div>
           </div>
-          <div>
-            <CardTitle className="text-3xl font-bold bg-gradient-to-r from-primary to-primary/80 bg-clip-text text-transparent">
-              Helpdesk Platform
-            </CardTitle>
-            <CardDescription className="text-muted-foreground mt-2">
-              Access your support dashboard
-            </CardDescription>
-          </div>
-        </CardHeader>
-        
-        <CardContent>
-          <Tabs defaultValue="login" className="w-full">
-            <TabsList className="grid w-full grid-cols-2 mb-6">
-              <TabsTrigger value="login" className="font-medium">Login</TabsTrigger>
-              <TabsTrigger value="signup" className="font-medium">Sign Up</TabsTrigger>
-            </TabsList>
+
+          <Card className="w-full border-primary/10 bg-white/95 shadow-lg animate-fade-up">
+            <CardHeader className="space-y-2 pb-4">
+              <CardTitle className="text-2xl text-primary">Account Access</CardTitle>
+              <CardDescription>Log in or request a new account.</CardDescription>
+            </CardHeader>
+
+            <CardContent>
+              <Tabs defaultValue="login" className="w-full">
+                <TabsList className="grid w-full grid-cols-2 mb-6">
+                  <TabsTrigger value="login">Login</TabsTrigger>
+                  <TabsTrigger value="signup">Sign Up</TabsTrigger>
+                </TabsList>
             
             <TabsContent value="login" className="space-y-4">
               <form onSubmit={handleLogin} className="space-y-4">
@@ -187,7 +209,7 @@ const Auth = () => {
                     </Button>
                   </div>
                 </div>
-                <Button type="submit" className="w-full h-11 font-medium" disabled={loading}>
+                <Button type="submit" className="w-full h-11 font-semibold" disabled={loading}>
                   {loading ? 'Signing in...' : 'Sign In'}
                 </Button>
                 
@@ -198,7 +220,7 @@ const Auth = () => {
                 </div>
               </form>
             </TabsContent>
-            
+
             <TabsContent value="signup" className="space-y-4">
               <form onSubmit={handleSignup} className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
@@ -276,14 +298,16 @@ const Auth = () => {
                     required
                   />
                 </div>
-                <Button type="submit" className="w-full h-11 font-medium" disabled={loading}>
+                <Button type="submit" className="w-full h-11 font-semibold" disabled={loading}>
                   {loading ? 'Creating account...' : 'Create Account'}
                 </Button>
               </form>
             </TabsContent>
-          </Tabs>
-        </CardContent>
-      </Card>
+              </Tabs>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
     </div>
   );
 };

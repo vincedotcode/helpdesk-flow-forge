@@ -8,7 +8,7 @@ const corsHeaders = {
 };
 
 const geminiApiKey = Deno.env.get('GEMINI_API_KEY');
-const geminiModel = Deno.env.get('GEMINI_MODEL') || 'gemini-2.0-flash-lite';
+const geminiModel = 'gemini-2.0-flash-lite';
 const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
 const serviceRoleKey = Deno.env.get('SERVICE_ROLE_KEY');
 const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');

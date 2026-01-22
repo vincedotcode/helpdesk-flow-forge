@@ -63,26 +63,27 @@ const Dashboard = () => {
       <div className="min-h-screen flex w-full bg-background">
         <AppSidebar activeTab={activeTab} onTabChange={setActiveTab} />
         <SidebarInset>
-          <header className="flex h-16 shrink-0 items-center gap-2 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+          <header className="relative flex h-16 shrink-0 items-center gap-2 border-b border-primary/20 bg-primary text-primary-foreground shadow-sm">
+            <div className="absolute inset-x-0 top-0 h-1 bg-accent" />
             <div className="flex items-center gap-2 px-4">
-              <SidebarTrigger className="-ml-1" />
-              <Separator orientation="vertical" className="mr-2 h-4" />
+              <SidebarTrigger className="-ml-1 text-primary-foreground hover:bg-white/10" />
+              <Separator orientation="vertical" className="mr-2 h-4 bg-white/30" />
               <Breadcrumb>
-                <BreadcrumbList>
+                <BreadcrumbList className="text-primary-foreground">
                   <BreadcrumbItem className="hidden md:block">
-                    <BreadcrumbLink href="#">
-                      Helpdesk
+                    <BreadcrumbLink href="#" className="text-primary-foreground/80 hover:text-primary-foreground">
+                      University Service Desk
                     </BreadcrumbLink>
                   </BreadcrumbItem>
-                  <BreadcrumbSeparator className="hidden md:block" />
+                  <BreadcrumbSeparator className="hidden md:block text-primary-foreground/60" />
                   <BreadcrumbItem>
-                    <BreadcrumbPage>{getBreadcrumbs()}</BreadcrumbPage>
+                    <BreadcrumbPage className="text-primary-foreground">{getBreadcrumbs()}</BreadcrumbPage>
                   </BreadcrumbItem>
                 </BreadcrumbList>
               </Breadcrumb>
             </div>
           </header>
-          <main className="flex-1 overflow-auto">
+          <main className="flex-1 overflow-auto bg-[radial-gradient(circle_at_top,_hsl(var(--muted))_0%,_hsl(var(--background))_55%)]">
             <div className="container mx-auto p-6">
               {renderContent()}
             </div>

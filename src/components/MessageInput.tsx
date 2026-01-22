@@ -71,6 +71,7 @@ const MessageInput: React.FC<MessageInputProps> = ({
             size="lg"
             className="h-11 w-11 rounded-xl p-0 flex-shrink-0"
             disabled={isLoading || !activeSessionId}
+            aria-label="Attach files"
             onClick={() => {
               const input = document.getElementById('kb-attachment-input') as HTMLInputElement | null;
               input?.click();
