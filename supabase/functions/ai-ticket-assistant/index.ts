@@ -2,7 +2,8 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
-const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
+const geminiApiKey = Deno.env.get('GEMINI_API_KEY');
+const geminiModel = Deno.env.get('GEMINI_MODEL') || 'gemini-1.0-pro';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -16,8 +17,8 @@ serve(async (req) => {
   }
 
   try {
-    if (!openAIApiKey) {
-      throw new Error('OpenAI API key not configured');
+    if (!geminiApiKey) {
+      throw new Error('Gemini API key not configured');
     }
 
     const { action, ticketContext, userMessage, conversationHistory } = await req.json();
@@ -45,38 +46,51 @@ ${ticketContext}`;
       userPrompt = userMessage;
     }
 
-    const messages = [
-      { role: 'system', content: systemPrompt },
-    ];
-
-    // Add conversation history for chat mode
+    const contents = [];
     if (action === 'chat' && conversationHistory) {
-      messages.push(...conversationHistory);
+      for (const msg of conversationHistory) {
+        const role = msg.role === 'assistant' ? 'model' : 'user';
+        contents.push({ role, parts: [{ text: msg.content }] });
+      }
     }
+    contents.push({ role: 'user', parts: [{ text: userPrompt }] });
 
-    messages.push({ role: 'user', content: userPrompt });
-
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${geminiModel}:generateContent?key=${geminiApiKey}`, {
       method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${openAIApiKey}`,
-        'Content-Type': 'application/json',
-      },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        model: 'gpt-4.1-nano',
-        messages: messages,
-        max_tokens: 1000,
-        temperature: 0.7,
+        systemInstruction: { parts: [{ text: systemPrompt }] },
+        contents,
+        generationConfig: {
+          maxOutputTokens: 1000,
+          temperature: 0.7,
+        },
       }),
     });
 
-    const data = await response.json();
+    let data: any = null;
+    try {
+      data = await response.json();
+    } catch {
+      data = null;
+    }
     
     if (!response.ok) {
-      throw new Error(data.error?.message || 'OpenAI API error');
+      throw new Error(`Gemini API error (${response.status}): ${JSON.stringify(data)}`);
     }
 
-    const aiResponse = data.choices[0].message.content;
+    const candidate = data?.candidates?.[0];
+    const parts = candidate?.content?.parts || [];
+    const aiResponseText = parts.map((p: any) => p?.text).filter(Boolean).join('');
+    let aiResponse = aiResponseText?.trim();
+
+    if (!aiResponse) {
+      if (candidate?.finishReason === 'SAFETY') {
+        aiResponse = "I'm sorry, I can't answer that request. Please rephrase or contact support.";
+      } else {
+        throw new Error(`Gemini API returned an empty response: ${JSON.stringify(data)}`);
+      }
+    }
 
     return new Response(JSON.stringify({ response: aiResponse }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },

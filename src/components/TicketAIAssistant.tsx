@@ -6,7 +6,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useToast } from '@/components/ui/use-toast';
 import { Bot, Send, Loader, RefreshCw } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
+import { supabase, SUPABASE_PUBLISHABLE_KEY } from '@/integrations/supabase/client';
 
 interface TicketAIAssistantProps {
   ticket: {
@@ -64,6 +64,10 @@ const TicketAIAssistant: React.FC<TicketAIAssistantProps> = ({ ticket }) => {
       `;
 
       const { data, error } = await supabase.functions.invoke('ai-ticket-assistant', {
+        headers: {
+          authorization: `Bearer ${SUPABASE_PUBLISHABLE_KEY}`,
+          apikey: SUPABASE_PUBLISHABLE_KEY,
+        },
         body: {
           action: 'summarize',
           ticketContext,
@@ -85,7 +89,7 @@ const TicketAIAssistant: React.FC<TicketAIAssistantProps> = ({ ticket }) => {
       console.error('Error generating summary:', error);
       toast({
         title: "Error",
-        description: "Failed to generate ticket summary. Please check if OpenAI API key is configured.",
+        description: "Failed to generate ticket summary. Please check if the Gemini API key is configured.",
         variant: "destructive",
       });
     } finally {
@@ -128,6 +132,10 @@ const TicketAIAssistant: React.FC<TicketAIAssistantProps> = ({ ticket }) => {
       }));
 
       const { data, error } = await supabase.functions.invoke('ai-ticket-assistant', {
+        headers: {
+          authorization: `Bearer ${SUPABASE_PUBLISHABLE_KEY}`,
+          apikey: SUPABASE_PUBLISHABLE_KEY,
+        },
         body: {
           action: 'chat',
           ticketContext,

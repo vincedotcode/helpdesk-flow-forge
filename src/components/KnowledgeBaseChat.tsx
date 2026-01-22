@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { supabase } from '@/integrations/supabase/client';
+import { supabase, SUPABASE_PUBLISHABLE_KEY } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Bot } from 'lucide-react';
@@ -35,7 +35,9 @@ const KnowledgeBaseChat: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [sessions, setSessions] = useState<ChatSession[]>([]);
   const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
+  const [ticketBySession, setTicketBySession] = useState<Record<string, string | null>>({});
   const [isCreatingTicket, setIsCreatingTicket] = useState(false);
+  const [pendingAttachments, setPendingAttachments] = useState<File[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
@@ -94,6 +96,7 @@ const KnowledgeBaseChat: React.FC = () => {
     }
 
     setMessages(data || []);
+    setTicketBySession(prev => ({ ...prev, [sessionId]: prev[sessionId] ?? null }));
   };
 
   const createNewSession = async () => {
@@ -119,58 +122,105 @@ const KnowledgeBaseChat: React.FC = () => {
   };
 
   const sendMessage = async () => {
-    if (!currentMessage.trim() || !activeSessionId || !user) return;
+    if ((!currentMessage.trim() && pendingAttachments.length === 0) || !activeSessionId || !user) return;
 
     setIsLoading(true);
     const userMessage = currentMessage.trim();
+    const messageForDisplay = userMessage || (pendingAttachments.length > 0 ? 'Shared attachments for context.' : '');
     setCurrentMessage('');
 
     const tempMessage: ChatMessage = {
       id: 'temp-' + Date.now(),
-      message: userMessage,
+      message: messageForDisplay,
       message_type: 'user',
       created_at: new Date().toISOString()
     };
     setMessages(prev => [...prev, tempMessage]);
 
     try {
-      const response = await fetch('https://wstjpdjhpclpaczphpis.supabase.co/functions/v1/ai-knowledge-assistant', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          message: userMessage,
-          sessionId: activeSessionId,
-          userId: user.id
-        })
-      });
+      let uploadedAttachments: Array<Record<string, unknown>> = [];
 
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+      if (pendingAttachments.length > 0) {
+        uploadedAttachments = await Promise.all(
+          pendingAttachments.map(async (file) => {
+            const filePath = `${user.id}/${activeSessionId}/${Date.now()}-${file.name}`;
+            const { error: uploadError } = await supabase
+              .storage
+              .from('ticket-attachments')
+              .upload(filePath, file, { upsert: false });
+
+            if (uploadError) {
+              throw uploadError;
+            }
+
+            const { data: publicUrlData } = supabase
+              .storage
+              .from('ticket-attachments')
+              .getPublicUrl(filePath);
+
+            return {
+              name: file.name,
+              url: publicUrlData?.publicUrl,
+              path: filePath,
+              type: file.type,
+              size: file.size,
+            };
+          })
+        );
       }
 
-      const data = await response.json();
+      const { data, error } = await supabase.functions.invoke('ai-knowledge-assistant', {
+        headers: {
+          authorization: `Bearer ${SUPABASE_PUBLISHABLE_KEY}`,
+          apikey: SUPABASE_PUBLISHABLE_KEY,
+        },
+        body: {
+          message: messageForDisplay,
+          sessionId: activeSessionId,
+          userId: user.id,
+          ticketId: ticketBySession[activeSessionId] ?? null,
+          attachments: uploadedAttachments,
+        }
+      });
+
+      if (error) {
+        throw error;
+      }
 
       setMessages(prev => prev.slice(0, -1));
       
       const responseMessage: ChatMessage = {
         id: Date.now().toString(),
-        message: userMessage,
+        message: messageForDisplay,
         response: data.response,
         message_type: 'user',
         created_at: new Date().toISOString(),
         ticketCreated: data.ticketCreated,
         ticketId: data.ticketId,
-        showResolutionCheck: !data.ticketCreated
+        showResolutionCheck: !data.ticketCreated && !data.ticketUpdated
       };
 
       setMessages(prev => [...prev, responseMessage]);
+      setPendingAttachments([]);
+
+      if (data.ticketCreated || data.ticketUpdated) {
+        setTicketBySession(prev => ({
+          ...prev,
+          [activeSessionId]: data.ticketId || prev[activeSessionId] || null
+        }));
+      }
 
       if (data.ticketCreated) {
         toast({
           title: "Support Ticket Created",
           description: `Ticket #${data.ticketId} has been created for your issue.`,
+        });
+      }
+      
+      if (data.ticketUpdated) {
+        toast({
+          title: "Ticket Updated",
+          description: `Ticket #${data.ticketId} has been updated with your latest details.`,
         });
       }
 
@@ -231,6 +281,13 @@ The user indicated that their problem was not resolved and requested further ass
           ? { ...m, ticketCreated: true, ticketId: ticket.id, showResolutionCheck: false }
           : m
       ));
+
+      if (activeSessionId) {
+        setTicketBySession(prev => ({
+          ...prev,
+          [activeSessionId]: ticket.id
+        }));
+      }
 
       toast({
         title: "Support Ticket Created",
@@ -351,13 +408,19 @@ The user indicated that their problem was not resolved and requested further ass
               <div ref={messagesEndRef} />
             </ScrollArea>
             
-            <MessageInput
-              currentMessage={currentMessage}
-              isLoading={isLoading}
-              activeSessionId={activeSessionId}
-              onMessageChange={setCurrentMessage}
-              onSendMessage={sendMessage}
-            />
+          <MessageInput
+            currentMessage={currentMessage}
+            isLoading={isLoading}
+            activeSessionId={activeSessionId}
+            attachments={pendingAttachments}
+            onMessageChange={setCurrentMessage}
+            onSendMessage={sendMessage}
+            onAttachFiles={(files) => {
+              if (!files) return;
+              setPendingAttachments(prev => [...prev, ...Array.from(files)]);
+            }}
+            onClearAttachments={() => setPendingAttachments([])}
+          />
           </CardContent>
         </Card>
       </div>
