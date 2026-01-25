@@ -63,7 +63,7 @@ export function AppSidebar({ activeTab, onTabChange }: AppSidebarProps) {
       show: true,
     },
     {
-      title: 'AI Assistant',
+      title: 'Ticket Assistant',
       icon: MessageCircle,
       value: 'knowledge-chat',
       show: true,

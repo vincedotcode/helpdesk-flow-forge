@@ -157,12 +157,14 @@ const TicketDetails = () => {
   };
 
   const canAssignTicket = (ticket: EnhancedTicket) => {
+    if (user?.role === 'super_admin') return true;
     return user?.role === 'department_admin' && 
            (!ticket.assigned_to || ticket.assigned_to.role === 'department_admin');
   };
 
   const canUpdateStatus = (ticket: EnhancedTicket) => {
-    return user?.role === 'department_technician' && !!ticket.assigned_to?.first_name;
+    if (user?.role === 'super_admin' || user?.role === 'department_admin') return true;
+    return user?.role === 'department_technician' && ticket.assigned_to?.id === user.id;
   };
 
   const showChatButton = (ticket: EnhancedTicket) => {

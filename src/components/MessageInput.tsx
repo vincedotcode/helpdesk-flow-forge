@@ -52,7 +52,7 @@ const MessageInput: React.FC<MessageInputProps> = ({
             value={currentMessage}
             onChange={(e) => onMessageChange(e.target.value)}
             onKeyPress={handleKeyPress}
-            placeholder="Ask me anything..."
+            placeholder="Describe the issue you want to report..."
             disabled={isLoading || !activeSessionId}
             className="min-h-[44px] rounded-xl border-input focus:border-ring resize-none"
           />

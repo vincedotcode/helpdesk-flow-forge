@@ -14,7 +14,6 @@ const serviceRoleKey = Deno.env.get('SERVICE_ROLE_KEY');
 const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
 const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY');
 
-const MAX_CONTEXT_CHARS = 12000;
 const MAX_HISTORY_MESSAGES = 12;
 
 const ticketPayloadRegex = /<TICKET_PAYLOAD>[\s\S]*?<\/TICKET_PAYLOAD>/i;
@@ -300,25 +299,6 @@ serve(async (req) => {
 
     console.log('Processing knowledge base query:', { message, sessionId, userId, ticketId });
 
-    // Get all active knowledge articles for context
-    const { data: articles, error: articlesError } = await supabase
-      .from('knowledge_articles')
-      .select('title, content')
-      .eq('is_active', true);
-
-    if (articlesError) {
-      console.error('Error fetching knowledge articles:', articlesError);
-      throw articlesError;
-    }
-
-    // Create knowledge context from articles
-    const knowledgeContext = (articles || []).map(article =>
-      `Title: ${article.title}\nContent: ${article.content}`
-    ).join('\n\n---\n\n');
-    const trimmedKnowledgeContext = knowledgeContext.length > MAX_CONTEXT_CHARS
-      ? `${knowledgeContext.slice(0, MAX_CONTEXT_CHARS)}\n\n(Truncated context for length)`
-      : knowledgeContext;
-
     const { data: history } = await supabase
       .from('knowledge_chat_messages')
       .select('message, response, created_at')
@@ -414,16 +394,20 @@ serve(async (req) => {
       ? `\nExisting Ticket Context:\n- Ticket ID: ${existingTicket.id}\n- Title: ${existingTicket.title}\n- Status: ${existingTicket.status}\n- Priority: ${existingTicket.priority}\n- Description: ${existingTicket.description}`
       : '';
 
-    const systemPrompt = `You are an AI assistant for a helpdesk system with access to the organization's knowledge base.
-
-Your knowledge base contains:
-${trimmedKnowledgeContext}
+    const systemPrompt = `You are an AI ticket intake assistant for a helpdesk system.
 ${ticketContext}
 
 Your role is to:
-1. Answer user questions using the knowledge base information
-2. Ask concise follow-up questions to gather key details for technical issues before creating a ticket
-3. Only when you have enough details, create or update a ticket
+1. Collect the details required to create or update a support ticket.
+2. Ask concise follow-up questions to fill missing details.
+3. Once enough details are available, respond with exactly: "CREATE_TICKET: [brief issue summary]".
+4. If a ticket already exists and the user provides additional details about the same issue, respond with exactly: "UPDATE_TICKET: [brief update summary]".
+
+Strict rules:
+- Do NOT provide troubleshooting, recommendations, or solutions.
+- Do NOT answer policy or procedure questions directly.
+- If a user asks for advice or a fix, explain that you can create a ticket and ask for the missing details instead.
+- Keep responses short, professional, and focused on ticket intake.
 
 Key details to gather before creating a ticket:
 - Software/app name (and version if known)
@@ -435,15 +419,6 @@ Key details to gather before creating a ticket:
 - When it started and how often it occurs
 - Whether it affects just the user or multiple users
 - Any workaround discovered
-
-Guidelines:
-- Always try to answer from the knowledge base first
-- If the issue requires hands-on help, collect missing details with 1-2 questions at a time
-- Once you have enough details, respond with exactly: "CREATE_TICKET: [brief issue summary]"
-- If a ticket already exists and the user provides additional details about the same issue, respond with exactly: "UPDATE_TICKET: [brief update summary]"
-- Be helpful, concise, and professional
-- If you're unsure, ask for more info rather than guessing
-- When not creating or updating a ticket, include a short "Suggested Fixes" section with 2-4 actionable steps sourced from the knowledge base if possible
 
 When you respond with CREATE_TICKET or UPDATE_TICKET, append a JSON block in tags <TICKET_PAYLOAD>...</TICKET_PAYLOAD> with fields you can infer. Example:
 <TICKET_PAYLOAD>{"action":"create","title":"...","summary":"...","category":"...","urgency_level":"...","affected_systems":"...","steps_to_reproduce":"...","expected_behavior":"...","actual_behavior":"...","business_impact":"...","additional_info":"...","software_name":"...","software_version":"...","environment":"...","troubleshooting":"...","start_time":"...","frequency":"...","user_scope":"...","workaround":"...","sentiment":"..."}</TICKET_PAYLOAD>
@@ -468,7 +443,7 @@ Do NOT mention the JSON block in your user-facing response.`;
       systemInstruction: { parts: [{ text: systemPrompt }] },
       contents,
       generationConfig: {
-        temperature: 0.6,
+        temperature: 0.3,
         maxOutputTokens: 600,
       },
     };

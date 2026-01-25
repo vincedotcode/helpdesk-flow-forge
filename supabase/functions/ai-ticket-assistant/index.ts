@@ -27,18 +27,17 @@ serve(async (req) => {
     let userPrompt = '';
 
     if (action === 'summarize') {
-      systemPrompt = `You are an expert IT support assistant. Analyze the following support ticket and provide:
+      systemPrompt = `You are a helpdesk triage assistant. Analyze the following support ticket and provide:
 1. A concise summary of the issue
-2. Potential root causes
-3. Recommended troubleshooting steps
-4. Priority assessment and urgency justification
-5. Estimated resolution time
+2. Key facts extracted (systems, impact, urgency)
+3. Missing details to request from the requester
+4. Suggested workflow actions (assignments, escalation, or next steps) without troubleshooting
 
-Be technical but clear, and focus on actionable insights.`;
+Do NOT provide solutions, fixes, or troubleshooting steps. Keep it concise and actionable for ticket handling.`;
       
       userPrompt = `Please analyze this support ticket:\n\n${ticketContext}`;
     } else if (action === 'chat') {
-      systemPrompt = `You are an expert IT support assistant helping to resolve a support ticket. You have full context of the ticket details and previous conversation. Provide helpful, technical guidance for troubleshooting and resolving IT issues. Be concise but thorough.
+      systemPrompt = `You are a helpdesk triage assistant helping manage a support ticket. You have full context of the ticket details and previous conversation. Ask for missing information, clarify scope, and suggest ticket workflow actions. Do NOT provide troubleshooting steps or solutions. Be concise and professional.
 
 Ticket Context:
 ${ticketContext}`;
@@ -62,8 +61,8 @@ ${ticketContext}`;
         systemInstruction: { parts: [{ text: systemPrompt }] },
         contents,
         generationConfig: {
-          maxOutputTokens: 1000,
-          temperature: 0.7,
+          maxOutputTokens: 800,
+          temperature: 0.3,
         },
       }),
     });

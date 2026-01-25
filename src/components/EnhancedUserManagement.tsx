@@ -32,7 +32,7 @@ interface Department {
 type UserRole = 'super_admin' | 'department_admin' | 'department_technician' | 'end_user';
 
 const EnhancedUserManagement = () => {
-  const { user } = useAuth();
+  const { user: currentUser } = useAuth();
   const [users, setUsers] = useState<User[]>([]);
   const [departments, setDepartments] = useState<Department[]>([]);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
@@ -52,10 +52,27 @@ const EnhancedUserManagement = () => {
     department_id: ''
   });
 
+  const [editUser, setEditUser] = useState({
+    first_name: '',
+    last_name: '',
+    role: 'end_user' as UserRole,
+    department_id: '',
+    is_active: true
+  });
+
   useEffect(() => {
     fetchUsers();
     fetchDepartments();
   }, []);
+
+  useEffect(() => {
+    if (isAddDialogOpen && currentUser?.role === 'department_admin' && currentUser.department_id) {
+      setNewUser((prev) => ({
+        ...prev,
+        department_id: currentUser.department_id || ''
+      }));
+    }
+  }, [isAddDialogOpen, currentUser?.role, currentUser?.department_id]);
 
   const fetchUsers = async () => {
     try {
@@ -75,8 +92,8 @@ const EnhancedUserManagement = () => {
         .order('created_at', { ascending: false });
 
       // Department admins can only see users in their department
-      if (user?.role === 'department_admin' && user.department_id) {
-        query = query.eq('department_id', user.department_id);
+      if (currentUser?.role === 'department_admin' && currentUser.department_id) {
+        query = query.eq('department_id', currentUser.department_id);
       }
 
       const { data, error } = await query;
@@ -118,7 +135,8 @@ const EnhancedUserManagement = () => {
     }
 
     // Check if department is required for the selected role
-    if ((newUser.role === 'department_admin' || newUser.role === 'department_technician') && !newUser.department_id) {
+    const normalizedNewDepartment = newUser.department_id === 'none' ? '' : newUser.department_id;
+    if ((newUser.role === 'department_admin' || newUser.role === 'department_technician') && !normalizedNewDepartment) {
       toast({
         title: "Error",
         description: "Please select a department for this role",
@@ -130,13 +148,18 @@ const EnhancedUserManagement = () => {
     setLoading(true);
 
     try {
+      const normalizedDepartmentId =
+        newUser.department_id === 'none' ? null : newUser.department_id || null;
+      const lockedDepartmentId = currentUser?.role === 'department_admin' ? currentUser.department_id || null : null;
+      const departmentId = lockedDepartmentId || normalizedDepartmentId;
+
       const { data, error } = await supabase.rpc('create_user_by_admin', {
         user_email: newUser.email,
         user_password: newUser.password,
         user_first_name: newUser.first_name,
         user_last_name: newUser.last_name,
         user_role: newUser.role,
-        user_department_id: newUser.department_id || null
+        user_department_id: departmentId
       });
       
       if (error) throw error;
@@ -179,8 +202,24 @@ const EnhancedUserManagement = () => {
     }
   };
 
-  const handleEditUser = (user: User) => {
-    setEditingUser(user);
+  const handleEditUser = (targetUser: User) => {
+    if (currentUser?.role === 'department_admin' && ['super_admin', 'department_admin'].includes(targetUser.role)) {
+      toast({
+        title: "Access Denied",
+        description: "You can only edit end users and technicians in your department.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setEditingUser(targetUser);
+    setEditUser({
+      first_name: targetUser.first_name,
+      last_name: targetUser.last_name,
+      role: targetUser.role as UserRole,
+      department_id: targetUser.department_id || '',
+      is_active: targetUser.is_active
+    });
     setIsEditDialogOpen(true);
   };
 
@@ -210,15 +249,77 @@ const EnhancedUserManagement = () => {
     }
   };
 
+  const handleUpdateUser = async () => {
+    if (!editingUser) return;
+
+    if (!editUser.first_name.trim() || !editUser.last_name.trim()) {
+      toast({
+        title: "Error",
+        description: "First and last name are required",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const normalizedEditDepartment = editUser.department_id === 'none' ? '' : editUser.department_id;
+    const requiresDepartment = editUser.role === 'department_admin' || editUser.role === 'department_technician';
+    if (requiresDepartment && !normalizedEditDepartment) {
+      toast({
+        title: "Error",
+        description: "This role requires a department assignment",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const departmentId = currentUser?.role === 'department_admin'
+      ? currentUser.department_id || normalizedEditDepartment
+      : normalizedEditDepartment || null;
+
+    setLoading(true);
+    try {
+      const { error } = await supabase
+        .from('users')
+        .update({
+          first_name: editUser.first_name.trim(),
+          last_name: editUser.last_name.trim(),
+          role: editUser.role,
+          department_id: departmentId,
+          is_active: editUser.is_active
+        })
+        .eq('id', editingUser.id);
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: "User updated successfully",
+      });
+
+      setIsEditDialogOpen(false);
+      setEditingUser(null);
+      fetchUsers();
+    } catch (error) {
+      console.error('Error updating user:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update user",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const getRoleOptions = () => {
-    if (user?.role === 'super_admin') {
+    if (currentUser?.role === 'super_admin') {
       return [
         { value: 'end_user', label: 'End User' },
         { value: 'department_technician', label: 'Department Technician' },
         { value: 'department_admin', label: 'Department Admin' },
         { value: 'super_admin', label: 'Super Admin' }
       ];
-    } else if (user?.role === 'department_admin') {
+    } else if (currentUser?.role === 'department_admin') {
       return [
         { value: 'end_user', label: 'End User' },
         { value: 'department_technician', label: 'Department Technician' }
@@ -253,7 +354,12 @@ const EnhancedUserManagement = () => {
     return matchesSearch && matchesRole;
   });
 
+  const isDepartmentAdmin = currentUser?.role === 'department_admin';
+  const departmentOptions = isDepartmentAdmin && currentUser?.department_id
+    ? departments.filter((dept) => dept.id === currentUser.department_id)
+    : departments;
   const requiresDepartment = newUser.role === 'department_admin' || newUser.role === 'department_technician';
+  const editRequiresDepartment = editUser.role === 'department_admin' || editUser.role === 'department_technician';
 
   return (
     <div className="space-y-6">
@@ -320,7 +426,13 @@ const EnhancedUserManagement = () => {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="role">Role</Label>
-                <Select value={newUser.role} onValueChange={(value: UserRole) => setNewUser({ ...newUser, role: value, department_id: '' })}>
+                <Select
+                  value={newUser.role}
+                  onValueChange={(value: UserRole) => {
+                    const lockedDepartment = isDepartmentAdmin && currentUser?.department_id ? currentUser.department_id : '';
+                    setNewUser({ ...newUser, role: value, department_id: lockedDepartment });
+                  }}
+                >
                   <SelectTrigger>
                     <SelectValue placeholder="Select role" />
                   </SelectTrigger>
@@ -340,16 +452,16 @@ const EnhancedUserManagement = () => {
                 <Select 
                   value={newUser.department_id} 
                   onValueChange={(value) => setNewUser({ ...newUser, department_id: value })}
-                  disabled={!requiresDepartment && newUser.role === 'end_user'}
+                  disabled={isDepartmentAdmin || (!requiresDepartment && newUser.role === 'end_user')}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder={requiresDepartment ? "Select department (required)" : "Select department (optional)"} />
                   </SelectTrigger>
                   <SelectContent>
-                    {!requiresDepartment && (
+                    {!requiresDepartment && !isDepartmentAdmin && (
                       <SelectItem value="none">No Department</SelectItem>
                     )}
-                    {departments.map((dept) => (
+                    {departmentOptions.map((dept) => (
                       <SelectItem key={dept.id} value={dept.id}>
                         {dept.name}
                       </SelectItem>
@@ -503,6 +615,7 @@ const EnhancedUserManagement = () => {
                           variant="outline" 
                           size="sm"
                           onClick={() => handleEditUser(user)}
+                          disabled={currentUser?.role === 'department_admin' && ['super_admin', 'department_admin'].includes(user.role)}
                         >
                           <Edit className="w-4 h-4" />
                         </Button>
@@ -522,6 +635,123 @@ const EnhancedUserManagement = () => {
           </div>
         </CardContent>
       </Card>
+
+      <Dialog
+        open={isEditDialogOpen}
+        onOpenChange={(open) => {
+          setIsEditDialogOpen(open);
+          if (!open) {
+            setEditingUser(null);
+          }
+        }}
+      >
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Edit User</DialogTitle>
+            <DialogDescription>Update user details, role, or department</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="edit-first-name">First Name</Label>
+                <Input
+                  id="edit-first-name"
+                  value={editUser.first_name}
+                  onChange={(e) => setEditUser({ ...editUser, first_name: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-last-name">Last Name</Label>
+                <Input
+                  id="edit-last-name"
+                  value={editUser.last_name}
+                  onChange={(e) => setEditUser({ ...editUser, last_name: e.target.value })}
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Email</Label>
+              <Input value={editingUser?.email || ''} disabled />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="edit-role">Role</Label>
+              <Select
+                value={editUser.role}
+                onValueChange={(value: UserRole) => {
+                  const lockedDepartment = isDepartmentAdmin && currentUser?.department_id ? currentUser.department_id : editUser.department_id;
+                  setEditUser({
+                    ...editUser,
+                    role: value,
+                    department_id: lockedDepartment || ''
+                  });
+                }}
+              >
+                <SelectTrigger id="edit-role">
+                  <SelectValue placeholder="Select role" />
+                </SelectTrigger>
+                <SelectContent>
+                  {getRoleOptions().map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="edit-department">
+                Department {editRequiresDepartment && <span className="text-red-500">*</span>}
+              </Label>
+              <Select
+                value={editUser.department_id}
+                onValueChange={(value) => setEditUser({ ...editUser, department_id: value })}
+                disabled={isDepartmentAdmin || (!editRequiresDepartment && editUser.role === 'end_user')}
+              >
+                <SelectTrigger id="edit-department">
+                  <SelectValue placeholder={editRequiresDepartment ? "Select department (required)" : "Select department (optional)"} />
+                </SelectTrigger>
+                <SelectContent>
+                  {!editRequiresDepartment && !isDepartmentAdmin && (
+                    <SelectItem value="none">No Department</SelectItem>
+                  )}
+                  {departmentOptions.map((dept) => (
+                    <SelectItem key={dept.id} value={dept.id}>
+                      {dept.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="edit-status">Status</Label>
+              <Select
+                value={editUser.is_active ? 'active' : 'inactive'}
+                onValueChange={(value) => setEditUser({ ...editUser, is_active: value === 'active' })}
+              >
+                <SelectTrigger id="edit-status">
+                  <SelectValue placeholder="Select status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="active">Active</SelectItem>
+                  <SelectItem value="inactive">Inactive</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleUpdateUser} disabled={loading}>
+              {loading ? 'Saving...' : 'Save Changes'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

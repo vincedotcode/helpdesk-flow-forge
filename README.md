@@ -2,6 +2,13 @@
 
 Helpdesk Flow Forge is a modern helpdesk application for managing customer-support tickets.  It’s built with [Vite](https://vitejs.dev/) and [React](https://react.dev/) using TypeScript, and leverages [Supabase](https://supabase.com/) for authentication and database services.  The UI uses [shadcn/ui](https://ui.shadcn.com/) components and Tailwind CSS to deliver an accessible, professional interface.
 
+## 📚 Documentation
+
+For full project documentation, see `PROJECT_DOCUMENTATION.md`.
+Additional docs:
+- `DOCUMENTATION.md`
+- `TECHNICAL_DOCUMENTATION.md`
+
 ## ✨ Features
 
 - **Ticket creation & management** – customers can submit support requests and monitor their status.
@@ -27,5 +34,3 @@ Helpdesk Flow Forge is a modern helpdesk application for managing customer-suppo
 
 - **Node.js** 18+ with npm or [pnpm](https://pnpm.io) installed.  
 - A Supabase project with a public `anon` key and `URL`.
-
-

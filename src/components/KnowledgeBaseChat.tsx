@@ -18,7 +18,6 @@ interface ChatMessage {
   created_at: string;
   ticketCreated?: boolean;
   ticketId?: string;
-  showResolutionCheck?: boolean;
 }
 
 interface ChatSession {
@@ -36,7 +35,6 @@ const KnowledgeBaseChat: React.FC = () => {
   const [sessions, setSessions] = useState<ChatSession[]>([]);
   const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
   const [ticketBySession, setTicketBySession] = useState<Record<string, string | null>>({});
-  const [isCreatingTicket, setIsCreatingTicket] = useState(false);
   const [pendingAttachments, setPendingAttachments] = useState<File[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -106,7 +104,7 @@ const KnowledgeBaseChat: React.FC = () => {
       .from('knowledge_chat_sessions')
       .insert({
         user_id: user.id,
-        title: 'New Knowledge Base Chat'
+        title: 'New Ticket Intake'
       })
       .select()
       .single();
@@ -196,8 +194,7 @@ const KnowledgeBaseChat: React.FC = () => {
         message_type: 'user',
         created_at: new Date().toISOString(),
         ticketCreated: data.ticketCreated,
-        ticketId: data.ticketId,
-        showResolutionCheck: !data.ticketCreated && !data.ticketUpdated
+        ticketId: data.ticketId
       };
 
       setMessages(prev => [...prev, responseMessage]);
@@ -238,87 +235,6 @@ const KnowledgeBaseChat: React.FC = () => {
     }
   };
 
-  const createTicketFromChat = async (messageId: string) => {
-    if (!user || !activeSessionId) return;
-
-    setIsCreatingTicket(true);
-    
-    try {
-      const message = messages.find(m => m.id === messageId);
-      if (!message) return;
-
-      const { data: userInfo, error: userError } = await supabase
-        .from('users')
-        .select('department_id')
-        .eq('id', user.id)
-        .single();
-
-      if (userError) throw userError;
-
-      const { data: ticket, error: ticketError } = await supabase
-        .from('tickets')
-        .insert({
-          title: `Knowledge Base Query: ${message.message.substring(0, 50)}...`,
-          description: `This ticket was created from a knowledge base interaction.
-
-User Question: ${message.message}
-
-AI Response: ${message.response}
-
-The user indicated that their problem was not resolved and requested further assistance.`,
-          status: 'open',
-          priority: 'medium',
-          created_by: user.id,
-          department_id: userInfo.department_id,
-        })
-        .select()
-        .single();
-
-      if (ticketError) throw ticketError;
-
-      setMessages(prev => prev.map(m => 
-        m.id === messageId 
-          ? { ...m, ticketCreated: true, ticketId: ticket.id, showResolutionCheck: false }
-          : m
-      ));
-
-      if (activeSessionId) {
-        setTicketBySession(prev => ({
-          ...prev,
-          [activeSessionId]: ticket.id
-        }));
-      }
-
-      toast({
-        title: "Support Ticket Created",
-        description: `Ticket #${ticket.id} has been created. Our team will review it soon.`,
-      });
-
-    } catch (error) {
-      console.error('Error creating ticket:', error);
-      toast({
-        title: "Error",
-        description: "Failed to create support ticket. Please try again.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsCreatingTicket(false);
-    }
-  };
-
-  const markAsResolved = (messageId: string) => {
-    setMessages(prev => prev.map(m => 
-      m.id === messageId 
-        ? { ...m, showResolutionCheck: false }
-        : m
-    ));
-    
-    toast({
-      title: "Great!",
-      description: "I'm glad I could help resolve your question.",
-    });
-  };
-
   if (!user) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
@@ -354,9 +270,9 @@ The user indicated that their problem was not resolved and requested further ass
                 <Bot className="w-5 h-5 text-primary" />
               </div>
               <div>
-                <CardTitle className="text-xl font-semibold">AI Knowledge Assistant</CardTitle>
+                <CardTitle className="text-xl font-semibold">AI Ticket Assistant</CardTitle>
                 <p className="text-sm text-muted-foreground mt-1">
-                  Ask me anything about the organization. I'm here to help!
+                  Describe your issue and I will capture the details and create a support ticket.
                 </p>
               </div>
             </div>
@@ -370,9 +286,9 @@ The user indicated that their problem was not resolved and requested further ass
                     <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4">
                       <Bot className="w-8 h-8 text-primary" />
                     </div>
-                    <h3 className="text-lg font-medium text-foreground mb-2">Welcome to AI Assistant</h3>
+                    <h3 className="text-lg font-medium text-foreground mb-2">Welcome to the Ticket Assistant</h3>
                     <p className="text-muted-foreground max-w-md mx-auto">
-                      I can help you find information about policies, procedures, or answer any questions you have about the organization.
+                      Tell me what you need help with. I’ll ask a few questions if needed and log a ticket for the support team.
                     </p>
                   </div>
                 )}
@@ -381,9 +297,6 @@ The user indicated that their problem was not resolved and requested further ass
                   <ChatMessage
                     key={msg.id}
                     message={msg}
-                    isCreatingTicket={isCreatingTicket}
-                    onCreateTicket={createTicketFromChat}
-                    onMarkAsResolved={markAsResolved}
                   />
                 ))}
                 

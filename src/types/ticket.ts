@@ -18,6 +18,7 @@ export interface Ticket {
     last_name: string;
     role: string;
   };
+  department_id?: string | null;
   departments?: {
     name: string;
   };

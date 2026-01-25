@@ -1,6 +1,5 @@
 
 import React from 'react';
-import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Bot, User, Ticket } from 'lucide-react';
 
@@ -13,11 +12,7 @@ interface ChatMessageProps {
     created_at: string;
     ticketCreated?: boolean;
     ticketId?: string;
-    showResolutionCheck?: boolean;
   };
-  isCreatingTicket: boolean;
-  onCreateTicket: (messageId: string) => void;
-  onMarkAsResolved: (messageId: string) => void;
 }
 
 const formatAIResponse = (response: string) => {
@@ -32,9 +27,6 @@ const formatAIResponse = (response: string) => {
 
 const ChatMessage: React.FC<ChatMessageProps> = ({
   message,
-  isCreatingTicket,
-  onCreateTicket,
-  onMarkAsResolved,
 }) => {
   return (
     <div className="space-y-4">
@@ -71,33 +63,6 @@ const ChatMessage: React.FC<ChatMessageProps> = ({
                 </div>
               )}
               
-              {message.showResolutionCheck && !message.ticketCreated && (
-                <div className="mt-4 pt-3 border-t space-y-3">
-                  <p className="text-sm font-medium text-foreground">
-                    Did this help resolve your question?
-                  </p>
-                  <div className="flex flex-wrap gap-2">
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => onMarkAsResolved(message.id)}
-                      className="text-green-600 border-green-200 hover:bg-green-50"
-                    >
-                      Yes, resolved
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => onCreateTicket(message.id)}
-                      disabled={isCreatingTicket}
-                      className="text-blue-600 border-blue-200 hover:bg-blue-50"
-                    >
-                      <Ticket className="w-3 h-3 mr-1" />
-                      Create Ticket
-                    </Button>
-                  </div>
-                </div>
-              )}
             </div>
           </div>
         </div>

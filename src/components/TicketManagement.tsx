@@ -23,10 +23,8 @@ const TicketManagement = () => {
     departments,
     departmentTechnicians,
     loading,
-    setLoading,
     fetchTickets,
     fetchDepartmentTechnicians,
-    findDepartmentAdmin,
     handleStatusUpdate
   } = useTicketManagement();
 
@@ -72,9 +70,23 @@ const TicketManagement = () => {
     }
   };
 
-  const openAssignDialog = (ticket: Ticket) => {
+  const openAssignDialog = async (ticket: Ticket) => {
     setSelectedTicket(ticket);
     setAssignmentData({ assigned_to: '', status: 'in_progress' });
+
+    if (user?.role === 'super_admin') {
+      if (!ticket.department_id) {
+        showErrorToast('Missing Department', 'This ticket is not linked to a department yet.');
+        setSelectedTicket(null);
+        return;
+      }
+      await fetchDepartmentTechnicians(ticket.department_id, true);
+    }
+
+    if (user?.role === 'department_admin' && user.department_id) {
+      await fetchDepartmentTechnicians(user.department_id);
+    }
+
     setIsAssignDialogOpen(true);
   };
 

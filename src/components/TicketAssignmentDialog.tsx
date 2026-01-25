@@ -36,30 +36,30 @@ const TicketAssignmentDialog: React.FC<TicketAssignmentDialogProps> = ({
         <DialogHeader>
           <DialogTitle>Assign Ticket</DialogTitle>
           <DialogDescription>
-            Assign "{selectedTicket?.title}" to a department technician
+            Assign "{selectedTicket?.title}" to a department team member
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="technician">Select Technician</Label>
+            <Label htmlFor="technician">Select Assignee</Label>
             <Select 
               value={assignmentData.assigned_to} 
               onValueChange={(value) => onAssignmentDataChange({ ...assignmentData, assigned_to: value })}
             >
               <SelectTrigger>
-                <SelectValue placeholder="Select technician" />
+                <SelectValue placeholder="Select assignee" />
               </SelectTrigger>
               <SelectContent>
                 {departmentTechnicians.map((tech) => (
                   <SelectItem key={tech.id} value={tech.id}>
-                    {tech.first_name} {tech.last_name} ({tech.email})
+                    {tech.first_name} {tech.last_name} ({tech.email}) • {tech.role.replace('_', ' ')}
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
             {departmentTechnicians.length === 0 && (
               <p className="text-sm text-muted-foreground">
-                No technicians available in this department.
+                No eligible assignees available for this department.
               </p>
             )}
           </div>

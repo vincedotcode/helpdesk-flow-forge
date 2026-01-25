@@ -52,8 +52,8 @@ const TicketTable: React.FC<TicketTableProps> = ({
   };
 
   const canAssignTicket = (ticket: Ticket) => {
-    // Only department admins can assign tickets
-    return user?.role === 'department_admin';
+    // Department admins and super admins can assign tickets
+    return user?.role === 'department_admin' || user?.role === 'super_admin';
   };
 
   const canUpdateStatus = (ticket: Ticket) => {
@@ -64,7 +64,7 @@ const TicketTable: React.FC<TicketTableProps> = ({
   };
 
   const filteredAndSortedTickets = useMemo(() => {
-    let filtered = tickets.filter(ticket => {
+    const filtered = tickets.filter(ticket => {
       const matchesSearch = ticket.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
                            ticket.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
                            `${ticket.created_by.first_name} ${ticket.created_by.last_name}`.toLowerCase().includes(searchTerm.toLowerCase());
@@ -77,8 +77,8 @@ const TicketTable: React.FC<TicketTableProps> = ({
 
     // Sort tickets
     filtered.sort((a, b) => {
-      let aValue: any;
-      let bValue: any;
+      let aValue: string | Date = '';
+      let bValue: string | Date = '';
 
       switch (sortField) {
         case 'title':
@@ -143,6 +143,13 @@ const TicketTable: React.FC<TicketTableProps> = ({
       minute: '2-digit'
     });
   };
+
+  const statusOptions: Array<{ value: TicketStatus; label: string }> = [
+    { value: 'open', label: 'Open' },
+    { value: 'in_progress', label: 'In Progress' },
+    { value: 'resolved', label: 'Resolved' },
+    { value: 'closed', label: 'Closed' },
+  ];
 
   return (
     <div className="space-y-4">
@@ -257,9 +264,27 @@ const TicketTable: React.FC<TicketTableProps> = ({
                   </div>
                 </TableCell>
                 <TableCell>
-                  <Badge className={getStatusColor(ticket.status)}>
-                    {ticket.status.replace('_', ' ')}
-                  </Badge>
+                  {canUpdateStatus(ticket) ? (
+                    <Select
+                      value={ticket.status}
+                      onValueChange={(value: TicketStatus) => onStatusUpdate(ticket.id, value)}
+                    >
+                      <SelectTrigger className="h-8 w-36">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {statusOptions.map((option) => (
+                          <SelectItem key={option.value} value={option.value}>
+                            {option.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  ) : (
+                    <Badge className={getStatusColor(ticket.status)}>
+                      {ticket.status.replace('_', ' ')}
+                    </Badge>
+                  )}
                 </TableCell>
                 <TableCell>
                   <Badge className={getPriorityColor(ticket.priority)}>

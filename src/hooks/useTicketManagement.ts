@@ -22,6 +22,7 @@ export const useTicketManagement = () => {
           description,
           status,
           priority,
+          department_id,
           created_at,
           created_by:users!tickets_created_by_fkey(id, first_name, last_name, email),
           assigned_to:users!tickets_assigned_to_fkey(id, first_name, last_name, role),
@@ -75,14 +76,21 @@ export const useTicketManagement = () => {
     }
   };
 
-  const fetchDepartmentTechnicians = async (departmentId: string) => {
+  const fetchDepartmentTechnicians = async (departmentId: string, includeAdmins = false) => {
     try {
-      const { data, error } = await supabase
+      let query = supabase
         .from('users')
         .select('id, first_name, last_name, email, role')
         .eq('department_id', departmentId)
-        .eq('role', 'department_technician')
         .eq('is_active', true);
+
+      if (includeAdmins) {
+        query = query.in('role', ['department_admin', 'department_technician']);
+      } else {
+        query = query.eq('role', 'department_technician');
+      }
+
+      const { data, error } = await query;
       
       if (error) throw error;
       setDepartmentTechnicians(data || []);
