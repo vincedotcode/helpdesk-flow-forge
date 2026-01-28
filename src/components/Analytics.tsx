@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -52,7 +53,7 @@ interface AnalyticsData {
     byRole: Array<{ name: string; value: number; color: string }>;
     activityTrend: Array<{ date: string; logins: number; tickets: number; engagement: number }>;
     departmentDistribution: Array<{ name: string; users: number; active: number; tickets: number }>;
-    topUsers: Array<{ name: string; email: string; tickets: number; department: string; lastActivity: string }>;
+    topUsers: Array<{ id: string; name: string; email: string; tickets: number; department: string; lastActivity: string }>;
   };
   broadcastMetrics: {
     byImportance: Array<{ name: string; value: number; color: string }>;
@@ -78,10 +79,17 @@ const COLORS = {
 const Analytics: React.FC = () => {
   const { user } = useAuth();
   const [data, setData] = useState<AnalyticsData | null>(null);
+  const [ticketsForPeriod, setTicketsForPeriod] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [timeRange, setTimeRange] = useState<'7d' | '30d' | '90d'>('30d');
   const [refreshing, setRefreshing] = useState(false);
+  const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
+
+  const selectedUser = data?.userMetrics.topUsers.find(u => u.id === selectedUserId) || null;
+  const selectedUserTickets = selectedUserId
+    ? ticketsForPeriod.filter((ticket) => ticket.created_by === selectedUserId)
+    : [];
 
   const fetchAnalytics = async (showToast = false) => {
     try {
@@ -169,6 +177,42 @@ const Analytics: React.FC = () => {
 
       const ticketTrend = generateTimeSeriesData(tickets, days);
 
+      // Build ticket counts per user for top active users
+      const ticketsByUserId = tickets.reduce((acc, ticket) => {
+        if (ticket.created_by) {
+          acc[ticket.created_by] = (acc[ticket.created_by] || 0) + 1;
+        }
+        return acc;
+      }, {} as Record<string, number>);
+
+      const nonAdminUsers = users.filter(
+        (u) => u.role !== 'super_admin' && u.role !== 'department_admin'
+      );
+
+      const topUsers = nonAdminUsers
+        .map((u) => {
+          const userTickets = tickets.filter((t) => t.created_by === u.id);
+          const lastActivityDate = userTickets.length
+            ? new Date(
+                Math.max(
+                  ...userTickets.map((t) => new Date(t.created_at).getTime())
+                )
+              ).toLocaleDateString()
+            : 'N/A';
+
+          return {
+            id: u.id,
+            name: `${u.first_name} ${u.last_name}`,
+            email: u.email,
+            tickets: ticketsByUserId[u.id] || 0,
+            department: u.departments?.name || 'N/A',
+            lastActivity: lastActivityDate,
+          };
+        })
+        .filter((u) => u.tickets > 0)
+        .sort((a, b) => b.tickets - a.tickets)
+        .slice(0, 10);
+
       // Generate mock department performance data
       const departmentPerformance = departments.map(dept => {
         const deptTickets = tickets.filter(ticket => ticket.department_id === dept.id);
@@ -241,13 +285,7 @@ const Analytics: React.FC = () => {
               tickets: deptTickets.length
             };
           }),
-          topUsers: users.slice(0, 10).map(user => ({
-            name: `${user.first_name} ${user.last_name}`,
-            email: user.email,
-            tickets: Math.floor(Math.random() * 20 + 1),
-            department: user.departments?.name || 'N/A',
-            lastActivity: new Date(Date.now() - Math.random() * 7 * 24 * 60 * 60 * 1000).toLocaleDateString()
-          }))
+          topUsers
         },
         broadcastMetrics: {
           byImportance: Object.entries(importanceCounts).map(([name, value]) => ({
@@ -280,6 +318,7 @@ const Analytics: React.FC = () => {
       };
 
       setData(analyticsData);
+      setTicketsForPeriod(tickets);
     } catch (error) {
       console.error('Error fetching analytics:', error);
       const errorMessage = error instanceof Error ? error.message : 'Failed to load analytics data';
@@ -318,6 +357,140 @@ const Analytics: React.FC = () => {
     } catch (error) {
       showErrorToast('Export Failed', 'Unable to export analytics data. Please try again.');
     }
+  };
+
+  const handleExportTopUsersPdf = () => {
+    if (!data) return;
+
+    const topUsers = data.userMetrics.topUsers;
+    if (!topUsers.length) {
+      showErrorToast('Export Failed', 'No top active users to export.');
+      return;
+    }
+
+    const reportWindow = window.open('', '_blank');
+    if (!reportWindow) {
+      showErrorToast('Export Failed', 'Popup blocked. Please allow popups to export the report.');
+      return;
+    }
+
+    const rowsHtml = topUsers
+      .map(
+        (u) => `
+        <tr>
+          <td>${u.name}</td>
+          <td>${u.email}</td>
+          <td>${u.department}</td>
+          <td>${u.tickets}</td>
+          <td>${u.lastActivity}</td>
+        </tr>`
+      )
+      .join('');
+
+    reportWindow.document.write(`
+      <html>
+        <head>
+          <title>Top Active Users Report</title>
+          <style>
+            body { font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; padding: 24px; }
+            h1 { font-size: 20px; margin-bottom: 8px; }
+            p { margin: 4px 0 16px; color: #4b5563; }
+            table { width: 100%; border-collapse: collapse; font-size: 12px; }
+            th, td { border: 1px solid #e5e7eb; padding: 8px; text-align: left; }
+            th { background-color: #f3f4f6; }
+          </style>
+        </head>
+        <body>
+          <h1>Top Active Users</h1>
+          <p>Time range: ${timeRange === '7d' ? 'Last 7 days' : timeRange === '30d' ? 'Last 30 days' : 'Last 90 days'}</p>
+          <table>
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Email</th>
+                <th>Department</th>
+                <th>Tickets Created</th>
+                <th>Last Activity</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${rowsHtml}
+            </tbody>
+          </table>
+        </body>
+      </html>
+    `);
+
+    reportWindow.document.close();
+    reportWindow.focus();
+    reportWindow.print();
+  };
+
+  const handleExportUserTicketsPdf = () => {
+    if (!selectedUser || !selectedUserTickets.length) {
+      showErrorToast('Export Failed', 'No tickets found for this user in the selected period.');
+      return;
+    }
+
+    const reportWindow = window.open('', '_blank');
+    if (!reportWindow) {
+      showErrorToast('Export Failed', 'Popup blocked. Please allow popups to export the report.');
+      return;
+    }
+
+    const rowsHtml = selectedUserTickets
+      .map(
+        (t) => `
+        <tr>
+          <td>${t.title}</td>
+          <td>${t.status}</td>
+          <td>${t.priority}</td>
+          <td>${new Date(t.created_at).toLocaleDateString()}</td>
+        </tr>`
+      )
+      .join('');
+
+    reportWindow.document.write(`
+      <html>
+        <head>
+          <title>User Ticket Report - ${selectedUser.name}</title>
+          <style>
+            body { font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; padding: 24px; }
+            h1 { font-size: 20px; margin-bottom: 4px; }
+            h2 { font-size: 14px; margin: 0 0 12px; color: #4b5563; }
+            p { margin: 2px 0; color: #4b5563; }
+            table { width: 100%; border-collapse: collapse; font-size: 12px; margin-top: 16px; }
+            th, td { border: 1px solid #e5e7eb; padding: 8px; text-align: left; }
+            th { background-color: #f3f4f6; }
+          </style>
+        </head>
+        <body>
+          <h1>User Ticket Report</h1>
+          <h2>${selectedUser.name}</h2>
+          <p><strong>Email:</strong> ${selectedUser.email}</p>
+          <p><strong>Department:</strong> ${selectedUser.department}</p>
+          <p><strong>Time range:</strong> ${timeRange === '7d' ? 'Last 7 days' : timeRange === '30d' ? 'Last 30 days' : 'Last 90 days'}</p>
+          <p><strong>Total tickets:</strong> ${selectedUserTickets.length}</p>
+          <table>
+            <thead>
+              <tr>
+                <th>Title</th>
+                <th>Status</th>
+                <th>Priority</th>
+                <th>Created At</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${rowsHtml}
+            </tbody>
+          </table>
+        </body>
+      </html>
+    `);
+
+    reportWindow.document.close();
+    reportWindow.focus();
+    reportWindow.print();
   };
 
   useEffect(() => {
@@ -675,8 +848,12 @@ const Analytics: React.FC = () => {
           </div>
 
           <Card>
-            <CardHeader>
+            <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle>Top Active Users</CardTitle>
+              <Button variant="outline" size="sm" onClick={handleExportTopUsersPdf}>
+                <Download className="h-4 w-4 mr-2" />
+                Export as PDF
+              </Button>
             </CardHeader>
             <CardContent>
               <Table>
@@ -691,7 +868,11 @@ const Analytics: React.FC = () => {
                 </TableHeader>
                 <TableBody>
                   {data.userMetrics.topUsers.map((user) => (
-                    <TableRow key={user.email}>
+                    <TableRow 
+                      key={user.email}
+                      className="cursor-pointer hover:bg-muted/60"
+                      onClick={() => setSelectedUserId(user.id)}
+                    >
                       <TableCell className="font-medium">{user.name}</TableCell>
                       <TableCell>{user.email}</TableCell>
                       <TableCell>{user.department}</TableCell>
@@ -847,6 +1028,66 @@ const Analytics: React.FC = () => {
           </Card>
         </TabsContent>
       </Tabs>
+
+      <Dialog open={!!selectedUser} onOpenChange={(open) => !open && setSelectedUserId(null)}>
+        <DialogContent className="max-w-3xl">
+          <DialogHeader>
+            <DialogTitle>User Ticket Report</DialogTitle>
+            {selectedUser && (
+              <DialogDescription>
+                Ticket history for <span className="font-medium">{selectedUser.name}</span> ({selectedUser.email}) in the selected analytics period.
+              </DialogDescription>
+            )}
+          </DialogHeader>
+          {selectedUser && (
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-muted-foreground">
+                    Department: <span className="font-medium text-foreground">{selectedUser.department}</span>
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    Tickets created in period: <span className="font-medium text-foreground">{selectedUserTickets.length}</span>
+                  </p>
+                </div>
+                <Button size="sm" variant="outline" onClick={handleExportUserTicketsPdf} disabled={!selectedUserTickets.length}>
+                  <Download className="h-4 w-4 mr-2" />
+                  Export Report
+                </Button>
+              </div>
+
+              {selectedUserTickets.length ? (
+                <div className="border rounded-md">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Title</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead>Priority</TableHead>
+                        <TableHead>Created At</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {selectedUserTickets.map((ticket) => (
+                        <TableRow key={ticket.id}>
+                          <TableCell className="font-medium max-w-xs truncate">{ticket.title}</TableCell>
+                          <TableCell className="capitalize">{ticket.status.replace('_', ' ')}</TableCell>
+                          <TableCell className="capitalize">{ticket.priority}</TableCell>
+                          <TableCell>{new Date(ticket.created_at).toLocaleString()}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground">
+                  This user has no tickets in the selected time range.
+                </p>
+              )}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

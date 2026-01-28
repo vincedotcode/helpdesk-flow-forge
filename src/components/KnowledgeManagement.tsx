@@ -28,6 +28,9 @@ const KnowledgeManagement: React.FC = () => {
     deleteArticle
   } = useKnowledgeManagement();
 
+  const canEdit =
+    user?.role === 'super_admin' || user?.role === 'department_admin';
+
   const handleSubmit = async (title: string, content: string) => {
     console.log('handleSubmit called with:', { title, content, editingArticle });
     if (editingArticle) {
@@ -49,7 +52,12 @@ const KnowledgeManagement: React.FC = () => {
     setIsDialogOpen(false);
   };
 
-  if (user?.role !== 'super_admin') {
+  if (
+    !user ||
+    !['super_admin', 'department_admin', 'department_technician'].includes(
+      user.role
+    )
+  ) {
     return (
       <Card>
         <CardContent className="p-6 text-center">
@@ -64,16 +72,22 @@ const KnowledgeManagement: React.FC = () => {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold">Knowledge Base Management</h1>
-          <p className="text-gray-600">Manage organizational knowledge articles</p>
+          <p className="text-gray-600">
+            {canEdit
+              ? 'Manage organizational knowledge articles'
+              : 'Browse organizational knowledge articles'}
+          </p>
         </div>
-        <KnowledgeArticleForm
-          editingArticle={editingArticle}
-          isDialogOpen={isDialogOpen}
-          setIsDialogOpen={setIsDialogOpen}
-          onSubmit={handleSubmit}
-          onCancel={handleCancel}
-          isLoading={isLoading}
-        />
+        {canEdit && (
+          <KnowledgeArticleForm
+            editingArticle={editingArticle}
+            isDialogOpen={isDialogOpen}
+            setIsDialogOpen={setIsDialogOpen}
+            onSubmit={handleSubmit}
+            onCancel={handleCancel}
+            isLoading={isLoading}
+          />
+        )}
       </div>
 
       <Card>
@@ -82,10 +96,13 @@ const KnowledgeManagement: React.FC = () => {
         </CardHeader>
         <CardContent>
           <KnowledgeArticleTable
-            articles={articles}
+            articles={
+              canEdit ? articles : articles.filter((a) => a.is_active)
+            }
             onEdit={handleEdit}
             onToggleStatus={toggleArticleStatus}
             onDelete={deleteArticle}
+            readOnly={!canEdit}
           />
         </CardContent>
       </Card>

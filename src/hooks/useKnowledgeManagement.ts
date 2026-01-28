@@ -233,7 +233,12 @@ export const useKnowledgeManagement = () => {
   };
 
   useEffect(() => {
-    if (user?.role === 'super_admin') {
+    if (
+      user &&
+      ['super_admin', 'department_admin', 'department_technician'].includes(
+        user.role
+      )
+    ) {
       loadArticles();
     }
   }, [user]);

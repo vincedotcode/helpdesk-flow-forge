@@ -18,13 +18,15 @@ interface KnowledgeArticleTableProps {
   onEdit: (article: KnowledgeArticle) => void;
   onToggleStatus: (articleId: string, currentStatus: boolean) => void;
   onDelete: (articleId: string) => void;
+  readOnly?: boolean;
 }
 
 const KnowledgeArticleTable: React.FC<KnowledgeArticleTableProps> = ({
   articles,
   onEdit,
   onToggleStatus,
-  onDelete
+  onDelete,
+  readOnly = false
 }) => {
   return (
     <Table>
@@ -33,7 +35,7 @@ const KnowledgeArticleTable: React.FC<KnowledgeArticleTableProps> = ({
           <TableHead>Title</TableHead>
           <TableHead>Status</TableHead>
           <TableHead>Created</TableHead>
-          <TableHead>Actions</TableHead>
+          {!readOnly && <TableHead>Actions</TableHead>}
         </TableRow>
       </TableHeader>
       <TableBody>
@@ -50,8 +52,8 @@ const KnowledgeArticleTable: React.FC<KnowledgeArticleTableProps> = ({
             <TableCell>
               <Badge 
                 variant={article.is_active ? "default" : "secondary"}
-                className="cursor-pointer"
-                onClick={() => onToggleStatus(article.id, article.is_active)}
+                className={readOnly ? '' : 'cursor-pointer'}
+                onClick={readOnly ? undefined : () => onToggleStatus(article.id, article.is_active)}
               >
                 {article.is_active ? 'Active' : 'Inactive'}
               </Badge>
@@ -59,24 +61,26 @@ const KnowledgeArticleTable: React.FC<KnowledgeArticleTableProps> = ({
             <TableCell>
               {new Date(article.created_at).toLocaleDateString()}
             </TableCell>
-            <TableCell>
-              <div className="flex gap-2">
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  onClick={() => onEdit(article)}
-                >
-                  <Edit className="w-4 h-4" />
-                </Button>
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  onClick={() => onDelete(article.id)}
-                >
-                  <Trash2 className="w-4 h-4" />
-                </Button>
-              </div>
-            </TableCell>
+            {!readOnly && (
+              <TableCell>
+                <div className="flex gap-2">
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => onEdit(article)}
+                  >
+                    <Edit className="w-4 h-4" />
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => onDelete(article.id)}
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </Button>
+                </div>
+              </TableCell>
+            )}
           </TableRow>
         ))}
       </TableBody>

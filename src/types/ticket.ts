@@ -22,6 +22,9 @@ export interface Ticket {
   departments?: {
     name: string;
   };
+  external_supplier_required?: boolean;
+  external_supplier_description?: string | null;
+  external_supplier_cost?: number | null;
 }
 
 export interface Department {

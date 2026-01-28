@@ -40,7 +40,10 @@ export function AppSidebar({ activeTab, onTabChange }: AppSidebarProps) {
 
   const canManageUsers = user?.role === 'super_admin' || user?.role === 'department_admin';
   const canManageDepartments = user?.role === 'super_admin';
-  const canManageKnowledge = user?.role === 'super_admin';
+  const canManageKnowledge =
+    user?.role === 'super_admin' ||
+    user?.role === 'department_admin' ||
+    user?.role === 'department_technician';
   const canCreateBroadcasts = user?.role === 'super_admin' || user?.role === 'department_admin';
 
   const menuItems = [
