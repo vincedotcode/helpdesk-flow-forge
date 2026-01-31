@@ -7,7 +7,8 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useToast } from '@/components/ui/use-toast';
-import { Send, Upload } from 'lucide-react';
+import { Send, Check } from 'lucide-react';
+import { playNotificationTone } from '@/utils/notificationSound';
 
 interface ChatMessage {
   id: string;
@@ -21,6 +22,7 @@ interface ChatMessage {
     last_name: string;
     role: string;
   };
+  read_by: string[];
 }
 
 interface TicketChatProps {
@@ -36,6 +38,8 @@ const TicketChat: React.FC<TicketChatProps> = ({ ticketId, ticketTitle }) => {
   const [loading, setLoading] = useState(false);
   const [sending, setSending] = useState(false);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
+  const notifiedMessagesRef = useRef<Set<string>>(new Set());
+  const skipInitialNotificationRef = useRef(true);
 
   useEffect(() => {
     fetchMessages();
@@ -69,6 +73,49 @@ const TicketChat: React.FC<TicketChatProps> = ({ ticketId, ticketTitle }) => {
     }
   }, [messages]);
 
+  useEffect(() => {
+    const currentUserId = user?.id;
+    if (!messages.length || !currentUserId) return;
+
+    const newMessages = messages.filter(
+      (message) => !notifiedMessagesRef.current.has(message.id)
+    );
+
+    newMessages.forEach((message) => {
+      notifiedMessagesRef.current.add(message.id);
+    });
+
+    if (skipInitialNotificationRef.current) {
+      skipInitialNotificationRef.current = false;
+      return;
+    }
+
+    const incomingFromOthers = newMessages.find((message) => message.user_id !== currentUserId);
+    if (incomingFromOthers) {
+      playNotificationTone();
+      toast({
+        title: "New chat message",
+        description: `${incomingFromOthers.users.first_name} ${incomingFromOthers.users.last_name} replied to ${ticketTitle}`,
+      });
+    }
+  }, [messages, ticketTitle, toast, user?.id]);
+
+  useEffect(() => {
+    if (!ticketId || !user?.id || !messages.length) return;
+
+    const markRead = async () => {
+      const { error } = await supabase.rpc('mark_ticket_chat_messages_read', {
+        p_ticket_id: ticketId,
+        p_user_id: user.id
+      });
+      if (error) {
+        console.error('Failed to mark chat messages as read:', error);
+      }
+    };
+
+    markRead();
+  }, [messages, ticketId, user?.id]);
+
   const fetchMessages = async () => {
     setLoading(true);
     try {
@@ -81,6 +128,7 @@ const TicketChat: React.FC<TicketChatProps> = ({ ticketId, ticketTitle }) => {
           attachment_url,
           created_at,
           user_id,
+          read_by,
           users:user_id(first_name, last_name, role)
         `)
         .eq('ticket_id', ticketId)
@@ -155,7 +203,11 @@ const TicketChat: React.FC<TicketChatProps> = ({ ticketId, ticketTitle }) => {
         <CardTitle className="text-lg">Chat - {ticketTitle}</CardTitle>
       </CardHeader>
       <CardContent className="flex-1 flex flex-col p-0">
-        <ScrollArea className="flex-1 px-4" ref={scrollAreaRef}>
+        <ScrollArea
+          className="flex-1 px-4 max-h-[26rem]"
+          ref={scrollAreaRef}
+          style={{ minHeight: 0 }}
+        >
           {loading ? (
             <div className="flex justify-center py-4">
               <span className="text-sm text-gray-500">Loading messages...</span>
@@ -166,48 +218,71 @@ const TicketChat: React.FC<TicketChatProps> = ({ ticketId, ticketTitle }) => {
             </div>
           ) : (
             <div className="space-y-3 py-2">
-              {messages.map((message) => (
-                <div
-                  key={message.id}
-                  className={`flex ${message.user_id === user?.id ? 'justify-end' : 'justify-start'}`}
-                >
+              {messages.map((message) => {
+                const otherReaders = message.read_by.filter((id) => id !== message.user_id);
+                const hasReadByCurrentUser = user?.id ? message.read_by.includes(user.id) : false;
+
+                return (
                   <div
-                    className={`max-w-[70%] rounded-lg p-3 ${
-                      message.user_id === user?.id
-                        ? 'bg-blue-500 text-white'
-                        : 'bg-gray-100 text-gray-900'
-                    }`}
+                    key={message.id}
+                    className={`flex ${message.user_id === user?.id ? 'justify-end' : 'justify-start'}`}
                   >
-                    <div className="flex items-center justify-between mb-1">
-                      <span className={`text-xs font-medium ${
-                        message.user_id === user?.id 
-                          ? 'text-blue-100' 
-                          : getRoleColor(message.users.role)
-                      }`}>
-                        {message.users.first_name} {message.users.last_name}
-                      </span>
-                      <span className={`text-xs ${
-                        message.user_id === user?.id ? 'text-blue-100' : 'text-gray-500'
-                      }`}>
-                        {formatTime(message.created_at)}
-                      </span>
-                    </div>
-                    <p className="text-sm whitespace-pre-wrap">{message.message}</p>
-                    {message.attachment_url && (
-                      <div className="mt-2">
-                        <a
-                          href={message.attachment_url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-xs underline"
-                        >
-                          View Attachment
-                        </a>
+                    <div
+                      className={`max-w-[70%] rounded-lg p-3 ${
+                        message.user_id === user?.id
+                          ? 'bg-blue-500 text-white'
+                          : 'bg-gray-100 text-gray-900'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between mb-1">
+                        <span className={`text-xs font-medium ${
+                          message.user_id === user?.id 
+                            ? 'text-blue-100' 
+                            : getRoleColor(message.users.role)
+                        }`}>
+                          {message.users.first_name} {message.users.last_name}
+                        </span>
+                        <span className={`text-xs ${
+                          message.user_id === user?.id ? 'text-blue-100' : 'text-gray-500'
+                        }`}>
+                          {formatTime(message.created_at)}
+                        </span>
                       </div>
-                    )}
+                      <p className="text-sm whitespace-pre-wrap">{message.message}</p>
+                      {message.attachment_url && (
+                        <div className="mt-2">
+                          <a
+                            href={message.attachment_url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-xs underline"
+                          >
+                            View Attachment
+                          </a>
+                        </div>
+                      )}
+                      {message.read_by && (
+                        <>
+                          {message.user_id === user?.id && otherReaders.length > 0 && (
+                            <div className="mt-1 flex items-center gap-1 text-[11px] text-muted-foreground">
+                              <Check className="w-3 h-3" />
+                              <span>
+                                Seen by {otherReaders.length} teammate{otherReaders.length > 1 ? 's' : ''}
+                              </span>
+                            </div>
+                          )}
+                          {message.user_id !== user?.id && hasReadByCurrentUser && (
+                            <div className="mt-1 flex items-center gap-1 text-[11px] text-muted-foreground">
+                              <Check className="w-3 h-3" />
+                              <span>Read</span>
+                            </div>
+                          )}
+                        </>
+                      )}
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </ScrollArea>

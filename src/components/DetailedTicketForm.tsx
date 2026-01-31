@@ -121,20 +121,6 @@ const DetailedTicketForm: React.FC<DetailedTicketFormProps> = ({ departments, on
     setLoading(true);
 
     try {
-      // Find department admin if department is selected
-      let assignedTo = null;
-      if (formData.department_id) {
-        const { data: adminData } = await supabase
-          .from('users')
-          .select('id')
-          .eq('department_id', formData.department_id)
-          .eq('role', 'department_admin')
-          .eq('is_active', true)
-          .single();
-        
-        assignedTo = adminData?.id || null;
-      }
-
       // Create the ticket
       const { data: ticketData, error: ticketError } = await supabase
         .from('tickets')
@@ -151,9 +137,7 @@ const DetailedTicketForm: React.FC<DetailedTicketFormProps> = ({ departments, on
           actual_behavior: formData.actual_behavior || null,
           business_impact: formData.business_impact || null,
           additional_info: formData.additional_info || null,
-          created_by: user?.id || '',
-          assigned_to: assignedTo,
-          status: assignedTo ? 'in_progress' : 'open'
+          created_by: user?.id || ''
         })
         .select()
         .single();
@@ -174,9 +158,7 @@ const DetailedTicketForm: React.FC<DetailedTicketFormProps> = ({ departments, on
 
       toast({
         title: "Success",
-        description: assignedTo 
-          ? "Ticket created and assigned to department admin" 
-          : "Ticket created successfully",
+        description: "Ticket created and routed to the relevant department team.",
       });
 
       onSuccess();

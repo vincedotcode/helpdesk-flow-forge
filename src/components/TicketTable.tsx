@@ -6,8 +6,14 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from '@/components/ui/pagination';
-import { Eye, UserPlus, ArrowUp, ArrowDown, Filter } from 'lucide-react';
+import { Eye, UserPlus, ArrowUp, ArrowDown, Filter, Download } from 'lucide-react';
 import { Ticket, TicketStatus } from '@/types/ticket';
+import { 
+  ticketStatusOptions, 
+  getTicketStatusBadgeClass, 
+  formatTicketStatus 
+} from '@/utils/ticketStatus';
+import { exportCostingReport } from '@/utils/costingReport';
 
 interface TicketTableProps {
   tickets: Ticket[];
@@ -30,16 +36,6 @@ const TicketTable: React.FC<TicketTableProps> = ({
   const [priorityFilter, setPriorityFilter] = useState<string>('all');
   const [sortField, setSortField] = useState<string>('created_at');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'open': return 'bg-purple-100 text-purple-800';
-      case 'in_progress': return 'bg-yellow-100 text-yellow-800';
-      case 'resolved': return 'bg-green-100 text-green-800';
-      case 'closed': return 'bg-gray-100 text-gray-800';
-      default: return 'bg-gray-100 text-gray-800';
-    }
-  };
 
   const getPriorityColor = (priority: string) => {
     switch (priority) {
@@ -144,13 +140,6 @@ const TicketTable: React.FC<TicketTableProps> = ({
     });
   };
 
-  const statusOptions: Array<{ value: TicketStatus; label: string }> = [
-    { value: 'open', label: 'Open' },
-    { value: 'in_progress', label: 'In Progress' },
-    { value: 'resolved', label: 'Resolved' },
-    { value: 'closed', label: 'Closed' },
-  ];
-
   return (
     <div className="space-y-4">
       {/* Filters and Search */}
@@ -217,6 +206,7 @@ const TicketTable: React.FC<TicketTableProps> = ({
                   Status {getSortIcon('status')}
                 </div>
               </TableHead>
+              <TableHead>Costing</TableHead>
               <TableHead 
                 className="cursor-pointer hover:bg-gray-50" 
                 onClick={() => handleSort('priority')}
@@ -273,7 +263,7 @@ const TicketTable: React.FC<TicketTableProps> = ({
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        {statusOptions.map((option) => (
+                        {ticketStatusOptions.map((option) => (
                           <SelectItem key={option.value} value={option.value}>
                             {option.label}
                           </SelectItem>
@@ -281,9 +271,34 @@ const TicketTable: React.FC<TicketTableProps> = ({
                       </SelectContent>
                     </Select>
                   ) : (
-                    <Badge className={getStatusColor(ticket.status)}>
-                      {ticket.status.replace('_', ' ')}
+                    <Badge className={getTicketStatusBadgeClass(ticket.status as TicketStatus)}>
+                      {formatTicketStatus(ticket.status)}
                     </Badge>
+                  )}
+                </TableCell>
+                <TableCell>
+                  {ticket.status === 'in_progress' ? (
+                    <div className="space-y-1">
+                      <p className="text-sm font-medium text-gray-900 line-clamp-2">
+                        {ticket.external_supplier_description || 'No costing notes'}
+                      </p>
+                      {typeof ticket.external_supplier_cost === 'number' && (
+                        <p className="text-xs text-gray-500">
+                          Cost: MUR {ticket.external_supplier_cost.toFixed(2)}
+                        </p>
+                      )}
+                      <Button
+                        variant="ghost"
+                        size="xs"
+                        className="px-0 text-xs"
+                        onClick={() => exportCostingReport(ticket)}
+                      >
+                        <Download className="w-3 h-3 mr-1" />
+                        Export cost summary
+                      </Button>
+                    </div>
+                  ) : (
+                    <span className="text-xs text-gray-400">N/A</span>
                   )}
                 </TableCell>
                 <TableCell>

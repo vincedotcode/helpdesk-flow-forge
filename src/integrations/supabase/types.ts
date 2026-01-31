@@ -657,6 +657,10 @@ export type Database = {
           message: string
         }[]
       }
+      mark_ticket_chat_messages_read: {
+        Args: { p_ticket_id: string; p_user_id: string }
+        Returns: void
+      }
     }
     Enums: {
       ticket_priority: "low" | "medium" | "high" | "urgent"

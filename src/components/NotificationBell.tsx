@@ -21,8 +21,9 @@ const NotificationBell = () => {
     
     if (notification.ticket_id) {
       navigate(`/dashboard/ticket/${notification.ticket_id}`);
-      setIsOpen(false);
     }
+
+    setIsOpen(false);
   };
 
   const getNotificationIcon = (type: string) => {
@@ -33,6 +34,10 @@ const NotificationBell = () => {
         return '🔄';
       case 'ticket_assigned':
         return '👤';
+      case 'broadcast_created':
+        return '📣';
+      case 'ticket_chat_message':
+        return '💬';
       default:
         return '📢';
     }

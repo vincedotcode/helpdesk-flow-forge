@@ -79,3 +79,8 @@ Requires `GEMINI_API_KEY` in Supabase function environment variables.
 - **Manage departments**: super_admin
 - **Manage users**: super_admin, department_admin (limited scope)
 
+## Recent Enhancements
+- **Status palette & permissions**: `src/utils/ticketStatus.ts` now defines the darker “Open” pill and labels used in `TicketCard.tsx`, `TicketTable.tsx`, and `EnhancedTicketView.tsx`, while `src/hooks/useTicketPermissions.ts` keeps assignment/status controls consistent for super admins, department admins, and technicians.
+- **Automatic routing & costing**: New seeds now pull `external_supplier_*` values via `src/hooks/useTicketManagement.ts`, the table exposes costing details/export through `src/utils/costingReport.ts`, and `DetailedTicketForm.tsx` relies on the database trigger `supabase/migrations/20260131110000_auto_assign_tickets.sql` for workload-based technician assignment (falling back to the department admin) plus the costing dashboard in `pages/TicketDetails.tsx`.
+- **Chat UX & receipts**: `supabase/migrations/20260131091000_add_ticket_chat_read_receipts.sql` adds the `read_by` column and RPC `mark_ticket_chat_messages_read`, while `src/components/TicketChat.tsx` now scrolls correctly, plays `src/utils/notificationSound.ts`, surfaces read receipts, and marks messages as read; notifications are generated server-side by `supabase/migrations/20260131112000_ticket_chat_notifications.sql`.
+- **Notification system coverage**: `NotificationBell.tsx`, `src/hooks/useNotifications.ts`, and the `notifications` table now surface broadcast, chat, status, and assignment events (including `broadcast_created` and `ticket_chat_message`), giving users in-app badges and clickable alerts backed by existing Supabase triggers.

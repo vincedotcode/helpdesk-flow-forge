@@ -53,4 +53,9 @@ export interface Notification {
 
 export type TicketPriority = 'low' | 'medium' | 'high' | 'urgent';
 export type TicketStatus = 'open' | 'in_progress' | 'resolved' | 'closed';
-export type NotificationType = 'ticket_created' | 'ticket_status_updated' | 'ticket_assigned';
+export type NotificationType =
+  | 'ticket_created'
+  | 'ticket_status_updated'
+  | 'ticket_assigned'
+  | 'broadcast_created'
+  | 'ticket_chat_message';

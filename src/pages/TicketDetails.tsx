@@ -11,6 +11,7 @@ import { useToast } from '@/components/ui/use-toast';
 import { ArrowLeft } from 'lucide-react';
 import EnhancedTicketView from '@/components/EnhancedTicketView';
 import TicketAIAssistant from '@/components/TicketAIAssistant';
+import { exportCostingReport } from '@/utils/costingReport';
 
 interface EnhancedTicket {
   id: string;
@@ -216,64 +217,6 @@ const TicketDetails = () => {
     }
   };
 
-  const handleExportCostingReport = () => {
-    if (!ticket) return;
-
-    const reportWindow = window.open('', '_blank');
-    if (!reportWindow) {
-      toast({
-        title: "Export Failed",
-        description: "Popup blocked. Please allow popups to export the report.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    const costDisplay =
-      externalSupplierCost && externalSupplierCost.trim().length > 0
-        ? externalSupplierCost
-        : 'N/A';
-
-    reportWindow.document.write(`
-      <html>
-        <head>
-          <title>Ticket Costing Report - ${ticket.title}</title>
-          <style>
-            body { font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; padding: 24px; }
-            h1 { font-size: 20px; margin-bottom: 4px; }
-            h2 { font-size: 14px; margin: 0 0 12px; color: #4b5563; }
-            p { margin: 4px 0; color: #4b5563; }
-            .section { margin-top: 16px; }
-            .label { font-weight: 600; }
-          </style>
-        </head>
-        <body>
-          <h1>Ticket Costing Report</h1>
-          <h2>${ticket.title}</h2>
-          <div class="section">
-            <p><span class="label">Ticket ID:</span> ${ticket.id}</p>
-            <p><span class="label">Status:</span> ${ticket.status.replace('_', ' ')}</p>
-            <p><span class="label">Priority:</span> ${ticket.priority}</p>
-            <p><span class="label">Created:</span> ${new Date(ticket.created_at).toLocaleString()}</p>
-            <p><span class="label">Department:</span> ${ticket.departments?.name || 'N/A'}</p>
-          </div>
-          <div class="section">
-            <p><span class="label">Requires External Suppliers:</span> Yes</p>
-            <p><span class="label">Cost (MUR):</span> ${costDisplay}</p>
-          </div>
-          <div class="section">
-            <p class="label">Costing Description</p>
-            <p>${externalSupplierDescription ? externalSupplierDescription.replace(/\n/g, '<br/>') : 'N/A'}</p>
-          </div>
-        </body>
-      </html>
-    `);
-
-    reportWindow.document.close();
-    reportWindow.focus();
-    reportWindow.print();
-  };
-
   const canAssignTicket = (ticket: EnhancedTicket) => {
     if (user?.role === 'super_admin') return true;
     return user?.role === 'department_admin' && 
@@ -401,7 +344,23 @@ const TicketDetails = () => {
                   </div>
                 </div>
                 <div className="flex items-center justify-between">
-                  <Button variant="outline" onClick={handleExportCostingReport}>
+                  <Button
+                    variant="outline"
+                    onClick={() =>
+                      exportCostingReport(
+                        ticket,
+                        externalSupplierDescription,
+                        externalSupplierCost,
+                        {
+                          onFailure: () => toast({
+                            title: "Export Failed",
+                            description: "Popup blocked. Please allow popups to export the report.",
+                            variant: "destructive",
+                          })
+                        }
+                      )
+                    }
+                  >
                     Export Costing Report
                   </Button>
                   <Button onClick={handleSaveCosting}>

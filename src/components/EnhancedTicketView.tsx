@@ -8,6 +8,8 @@ import { Separator } from '@/components/ui/separator';
 import { supabase } from '@/integrations/supabase/client';
 import TicketChat from './TicketChat';
 import { MessageSquare, Paperclip, Calendar, User, Building, Download, FileImage, FileText } from 'lucide-react';
+import { TicketStatus } from '@/types/ticket';
+import { ticketStatusOptions, getTicketStatusBadgeClass, formatTicketStatus } from '@/utils/ticketStatus';
 
 interface EnhancedTicket {
   id: string;
@@ -58,16 +60,6 @@ const EnhancedTicketView: React.FC<EnhancedTicketViewProps> = ({
   showChatButton
 }) => {
   const [isChatOpen, setIsChatOpen] = useState(false);
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'open': return 'bg-purple-100 text-purple-800';
-      case 'in_progress': return 'bg-yellow-100 text-yellow-800';
-      case 'resolved': return 'bg-green-100 text-green-800';
-      case 'closed': return 'bg-gray-100 text-gray-800';
-      default: return 'bg-gray-100 text-gray-800';
-    }
-  };
 
   const getPriorityColor = (priority: string) => {
     switch (priority) {
@@ -122,8 +114,8 @@ const EnhancedTicketView: React.FC<EnhancedTicketViewProps> = ({
           <div className="flex-1">
             <CardTitle className="text-xl mb-2">{ticket.title}</CardTitle>
             <div className="flex items-center space-x-2 mb-3">
-              <Badge className={getStatusColor(ticket.status)}>
-                {ticket.status.replace('_', ' ')}
+              <Badge className={getTicketStatusBadgeClass(ticket.status as TicketStatus)}>
+                {formatTicketStatus(ticket.status)}
               </Badge>
               <Badge className={getPriorityColor(ticket.priority)}>
                 {ticket.priority}
@@ -149,12 +141,13 @@ const EnhancedTicketView: React.FC<EnhancedTicketViewProps> = ({
                   <SelectTrigger className="h-8 w-40">
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="open">Open</SelectItem>
-                    <SelectItem value="in_progress">In Progress</SelectItem>
-                    <SelectItem value="resolved">Resolved</SelectItem>
-                    <SelectItem value="closed">Closed</SelectItem>
-                  </SelectContent>
+                <SelectContent>
+                  {ticketStatusOptions.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
                 </Select>
               </div>
             )}

@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Eye, UserCheck } from 'lucide-react';
 import { Ticket, TicketStatus } from '@/types/ticket';
 import { useTicketPermissions } from '@/hooks/useTicketPermissions';
+import { ticketStatusOptions, getTicketStatusBadgeClass, formatTicketStatus } from '@/utils/ticketStatus';
 
 interface TicketCardProps {
   ticket: Ticket;
@@ -22,16 +23,6 @@ const TicketCard: React.FC<TicketCardProps> = ({
   onStatusUpdate
 }) => {
   const { canAssignTicket, canUpdateStatus } = useTicketPermissions();
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'open': return 'bg-blue-100 text-blue-800';
-      case 'in_progress': return 'bg-yellow-100 text-yellow-800';
-      case 'resolved': return 'bg-green-100 text-green-800';
-      case 'closed': return 'bg-gray-100 text-gray-800';
-      default: return 'bg-gray-100 text-gray-800';
-    }
-  };
 
   const getPriorityColor = (priority: string) => {
     switch (priority) {
@@ -51,8 +42,8 @@ const TicketCard: React.FC<TicketCardProps> = ({
             <h3 className="font-semibold text-lg mb-2">{ticket.title}</h3>
             <p className="text-gray-600 mb-3 line-clamp-2">{ticket.description}</p>
             <div className="flex items-center space-x-2 mb-2">
-              <Badge className={getStatusColor(ticket.status)}>
-                {ticket.status.replace('_', ' ')}
+              <Badge className={getTicketStatusBadgeClass(ticket.status as TicketStatus)}>
+                {formatTicketStatus(ticket.status)}
               </Badge>
               <Badge className={getPriorityColor(ticket.priority)}>
                 {ticket.priority}
@@ -101,9 +92,11 @@ const TicketCard: React.FC<TicketCardProps> = ({
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="in_progress">In Progress</SelectItem>
-                  <SelectItem value="resolved">Resolved</SelectItem>
-                  <SelectItem value="closed">Closed</SelectItem>
+                  {ticketStatusOptions.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             )}
