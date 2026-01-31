@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useToast } from '@/components/ui/use-toast';
-import { Send, Check } from 'lucide-react';
+import { Send, Check, Trash2 } from 'lucide-react';
 import { playNotificationTone } from '@/utils/notificationSound';
 
 interface ChatMessage {
@@ -37,6 +37,7 @@ const TicketChat: React.FC<TicketChatProps> = ({ ticketId, ticketTitle }) => {
   const [newMessage, setNewMessage] = useState('');
   const [loading, setLoading] = useState(false);
   const [sending, setSending] = useState(false);
+  const [deletingMessageId, setDeletingMessageId] = useState<string | null>(null);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const notifiedMessagesRef = useRef<Set<string>>(new Set());
   const skipInitialNotificationRef = useRef(true);
@@ -50,13 +51,13 @@ const TicketChat: React.FC<TicketChatProps> = ({ ticketId, ticketTitle }) => {
       .on(
         'postgres_changes',
         {
-          event: 'INSERT',
+          event: '*',
           schema: 'public',
           table: 'ticket_chat_messages',
           filter: `ticket_id=eq.${ticketId}`
         },
-        (payload) => {
-          fetchMessages(); // Refetch to get user details
+        () => {
+          fetchMessages(); // Refetch to keep in sync on any change
         }
       )
       .subscribe();
@@ -184,6 +185,38 @@ const TicketChat: React.FC<TicketChatProps> = ({ ticketId, ticketTitle }) => {
     }
   };
 
+  const handleDeleteMessage = async (messageId: string) => {
+    if (typeof window !== 'undefined' && !window.confirm('Are you sure you want to delete this message?')) {
+      return;
+    }
+
+    setDeletingMessageId(messageId);
+    try {
+      const { error } = await supabase
+        .from('ticket_chat_messages')
+        .delete()
+        .eq('id', messageId);
+
+      if (error) throw error;
+
+      setMessages((previous) => previous.filter((message) => message.id !== messageId));
+
+      toast({
+        title: "Message deleted",
+        description: "This chat message was removed.",
+      });
+    } catch (error) {
+      console.error('Error deleting message:', error);
+      toast({
+        title: "Error",
+        description: "Failed to delete message",
+        variant: "destructive",
+      });
+    } finally {
+      setDeletingMessageId(null);
+    }
+  };
+
   const formatTime = (timestamp: string) => {
     return new Date(timestamp).toLocaleString();
   };
@@ -203,7 +236,7 @@ const TicketChat: React.FC<TicketChatProps> = ({ ticketId, ticketTitle }) => {
         <CardTitle className="text-lg">Chat - {ticketTitle}</CardTitle>
       </CardHeader>
       <CardContent className="flex-1 flex flex-col p-0">
-        <ScrollArea
+      <ScrollArea
           className="flex-1 px-4 max-h-[26rem]"
           ref={scrollAreaRef}
           style={{ minHeight: 0 }}
@@ -218,12 +251,18 @@ const TicketChat: React.FC<TicketChatProps> = ({ ticketId, ticketTitle }) => {
             </div>
           ) : (
             <div className="space-y-3 py-2">
-              {messages.map((message) => {
-                const otherReaders = message.read_by.filter((id) => id !== message.user_id);
-                const hasReadByCurrentUser = user?.id ? message.read_by.includes(user.id) : false;
+            {messages.map((message) => {
+              const otherReaders = message.read_by.filter((id) => id !== message.user_id);
+              const hasReadByCurrentUser = user?.id ? message.read_by.includes(user.id) : false;
+              const isDeletingThisMessage = deletingMessageId === message.id;
+              const canDeleteMessage = !!user && (
+                message.user_id === user.id ||
+                user.role === 'super_admin' ||
+                user.role === 'department_admin'
+              );
 
-                return (
-                  <div
+              return (
+                <div
                     key={message.id}
                     className={`flex ${message.user_id === user?.id ? 'justify-end' : 'justify-start'}`}
                   >
@@ -242,11 +281,24 @@ const TicketChat: React.FC<TicketChatProps> = ({ ticketId, ticketTitle }) => {
                         }`}>
                           {message.users.first_name} {message.users.last_name}
                         </span>
-                        <span className={`text-xs ${
-                          message.user_id === user?.id ? 'text-blue-100' : 'text-gray-500'
-                        }`}>
-                          {formatTime(message.created_at)}
-                        </span>
+                        <div className="flex items-center gap-2">
+                          <span className={`text-xs ${
+                            message.user_id === user?.id ? 'text-blue-100' : 'text-gray-500'
+                          }`}>
+                            {formatTime(message.created_at)}
+                          </span>
+                          {canDeleteMessage && (
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteMessage(message.id)}
+                              disabled={isDeletingThisMessage}
+                              className="text-gray-400 hover:text-red-400 transition-colors"
+                              aria-label="Delete message"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          )}
+                        </div>
                       </div>
                       <p className="text-sm whitespace-pre-wrap">{message.message}</p>
                       {message.attachment_url && (
@@ -261,7 +313,7 @@ const TicketChat: React.FC<TicketChatProps> = ({ ticketId, ticketTitle }) => {
                           </a>
                         </div>
                       )}
-                      {message.read_by && (
+                    {message.read_by && (
                         <>
                           {message.user_id === user?.id && otherReaders.length > 0 && (
                             <div className="mt-1 flex items-center gap-1 text-[11px] text-muted-foreground">
