@@ -7,7 +7,7 @@ const geminiModel = Deno.env.get('GEMINI_MODEL') || 'gemini-1.5-flash';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Headers': 'authorization, x-session-token, x-client-info, apikey, content-type',
 };
 
 serve(async (req) => {
