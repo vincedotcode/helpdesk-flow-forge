@@ -7,13 +7,31 @@
 -- ===================================================================
 
 -- Create enum for user roles
-CREATE TYPE IF NOT EXISTS user_role AS ENUM ('super_admin', 'department_admin', 'department_technician', 'end_user');
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'user_role') THEN
+    CREATE TYPE public.user_role AS ENUM ('super_admin', 'department_admin', 'department_technician', 'end_user');
+  END IF;
+END;
+$$;
 
 -- Create enum for ticket status
-CREATE TYPE IF NOT EXISTS ticket_status AS ENUM ('open', 'in_progress', 'resolved', 'closed');
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'ticket_status') THEN
+    CREATE TYPE public.ticket_status AS ENUM ('open', 'in_progress', 'resolved', 'closed');
+  END IF;
+END;
+$$;
 
 -- Create enum for ticket priority
-CREATE TYPE IF NOT EXISTS ticket_priority AS ENUM ('low', 'medium', 'high', 'urgent');
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'ticket_priority') THEN
+    CREATE TYPE public.ticket_priority AS ENUM ('low', 'medium', 'high', 'urgent');
+  END IF;
+END;
+$$;
 
 -- Create departments table
 CREATE TABLE IF NOT EXISTS departments (
@@ -1497,7 +1515,7 @@ CREATE POLICY "Message authors can delete their messages"
     )
   );
 
--- Allow admins to delete an entire ticket chat
+-- Allow authorized users to delete an entire ticket chat
 CREATE OR REPLACE FUNCTION public.delete_ticket_chat(p_ticket_id uuid)
 RETURNS void
 LANGUAGE plpgsql

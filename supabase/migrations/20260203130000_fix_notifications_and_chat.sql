@@ -98,7 +98,7 @@ CREATE POLICY "Message authors can delete their messages"
     )
   );
 
--- Allow admins to delete an entire ticket chat
+-- Allow authorized users to delete an entire ticket chat
 CREATE OR REPLACE FUNCTION public.delete_ticket_chat(p_ticket_id uuid)
 RETURNS void
 LANGUAGE plpgsql

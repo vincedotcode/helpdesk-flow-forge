@@ -8,6 +8,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Users, Ticket, Clock, TrendingUp, AlertTriangle, CheckCircle2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import BroadcastNotifications from './BroadcastNotifications';
+import TicketNotifications from './TicketNotifications';
 import DashboardBroadcastSection from './DashboardBroadcastSection';
 
 interface DashboardStats {
@@ -183,6 +184,7 @@ const DashboardOverview: React.FC = () => {
 
       {/* Personal Notifications */}
       <BroadcastNotifications />
+      <TicketNotifications />
 
       {/* Recent Activity */}
       <Card>

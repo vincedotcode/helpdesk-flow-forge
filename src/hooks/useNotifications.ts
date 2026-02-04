@@ -6,13 +6,20 @@ import { useToast } from '@/components/ui/use-toast';
 import { Notification } from '@/types/ticket';
 import { playNotificationTone } from '@/utils/notificationSound';
 
-export const useNotifications = () => {
+interface UseNotificationsOptions {
+  enableRealtime?: boolean;
+  enableToasts?: boolean;
+}
+
+export const useNotifications = (options: UseNotificationsOptions = {}) => {
+  const { enableRealtime = true, enableToasts = true } = options;
   const { user } = useAuth();
   const { toast } = useToast();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [loading, setLoading] = useState(false);
   const seenNotificationIds = useRef<Set<string>>(new Set());
+  const instanceIdRef = useRef<string>(Math.random().toString(36).slice(2));
 
   const fetchNotifications = async () => {
     if (!user?.id) return;
@@ -104,8 +111,12 @@ export const useNotifications = () => {
 
     fetchNotifications();
 
+    if (!enableRealtime) {
+      return;
+    }
+
     const channel = supabase
-      .channel(`notifications-${user.id}`)
+      .channel(`notifications-${user.id}-${instanceIdRef.current}`)
       .on(
         'postgres_changes',
         {
@@ -129,7 +140,7 @@ export const useNotifications = () => {
             setUnreadCount((prev) => prev + 1);
           }
 
-          if (['ticket_chat_message', 'ticket_assigned'].includes(newNotification.type)) {
+          if (enableToasts && ['ticket_chat_message', 'ticket_assigned'].includes(newNotification.type)) {
             playNotificationTone();
             toast({
               title: newNotification.title || 'New notification',
@@ -160,7 +171,7 @@ export const useNotifications = () => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [toast, user?.id]);
+  }, [toast, user?.id, enableRealtime, enableToasts]);
 
   return {
     notifications,

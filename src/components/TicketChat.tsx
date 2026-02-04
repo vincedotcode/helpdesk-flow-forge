@@ -275,16 +275,14 @@ const TicketChat: React.FC<TicketChatProps> = ({ ticketId, ticketTitle }) => {
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between gap-3">
           <CardTitle className="text-lg">Chat - {ticketTitle}</CardTitle>
-          {user && (
-            <Button
-              variant="destructive"
-              size="sm"
-              onClick={handleDeleteChat}
-              disabled={deletingChat}
-            >
-              {deletingChat ? 'Deleting...' : 'Delete chat'}
-            </Button>
-          )}
+          <Button
+            variant="destructive"
+            size="sm"
+            onClick={handleDeleteChat}
+            disabled={!user || deletingChat}
+          >
+            {deletingChat ? 'Deleting...' : 'Delete chat'}
+          </Button>
         </div>
       </CardHeader>
       <CardContent className="flex-1 flex flex-col p-0 min-h-0">
