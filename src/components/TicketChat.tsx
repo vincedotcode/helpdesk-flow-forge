@@ -17,7 +17,7 @@ interface ChatMessage {
   attachment_url?: string;
   created_at: string;
   user_id: string;
-  users: {
+  users?: {
     first_name: string;
     last_name: string;
     role: string;
@@ -42,13 +42,14 @@ const TicketChat: React.FC<TicketChatProps> = ({ ticketId, ticketTitle }) => {
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const notifiedMessagesRef = useRef<Set<string>>(new Set());
   const skipInitialNotificationRef = useRef(true);
+  const instanceIdRef = useRef<string>(Math.random().toString(36).slice(2));
 
   useEffect(() => {
     fetchMessages();
     
     // Set up real-time subscription for new messages
     const channel = supabase
-      .channel(`ticket-chat-${ticketId}`)
+      .channel(`ticket-chat-${ticketId}-${instanceIdRef.current}`)
       .on(
         'postgres_changes',
         {
@@ -100,10 +101,13 @@ const TicketChat: React.FC<TicketChatProps> = ({ ticketId, ticketTitle }) => {
 
     const incomingFromOthers = newMessages.find((message) => message.user_id !== currentUserId);
     if (incomingFromOthers) {
+      const senderName = incomingFromOthers.users
+        ? `${incomingFromOthers.users.first_name} ${incomingFromOthers.users.last_name}`
+        : 'A teammate';
       playNotificationTone();
       toast({
         title: "New chat message",
-        description: `${incomingFromOthers.users.first_name} ${incomingFromOthers.users.last_name} replied to ${ticketTitle}`,
+        description: `${senderName} replied to ${ticketTitle}`,
       });
     }
   }, [messages, ticketTitle, toast, user?.id]);
@@ -157,7 +161,7 @@ const TicketChat: React.FC<TicketChatProps> = ({ ticketId, ticketTitle }) => {
   };
 
   const sendMessage = async () => {
-    if (!newMessage.trim()) return;
+    if (!newMessage.trim() || !user?.id) return;
 
     setSending(true);
     try {
@@ -165,7 +169,7 @@ const TicketChat: React.FC<TicketChatProps> = ({ ticketId, ticketTitle }) => {
         .from('ticket_chat_messages')
         .insert({
           ticket_id: ticketId,
-          user_id: user?.id || '',
+          user_id: user.id,
           message: newMessage.trim(),
           message_type: 'text'
         });
@@ -309,6 +313,10 @@ const TicketChat: React.FC<TicketChatProps> = ({ ticketId, ticketTitle }) => {
                 user.role === 'super_admin' ||
                 user.role === 'department_admin'
               );
+              const senderName = message.users
+                ? `${message.users.first_name} ${message.users.last_name}`
+                : 'Unknown user';
+              const senderRole = message.users?.role || 'end_user';
 
               return (
                 <div
@@ -326,9 +334,9 @@ const TicketChat: React.FC<TicketChatProps> = ({ ticketId, ticketTitle }) => {
                         <span className={`text-xs font-medium ${
                           message.user_id === user?.id 
                             ? 'text-blue-100' 
-                            : getRoleColor(message.users.role)
+                            : getRoleColor(senderRole)
                         }`}>
-                          {message.users.first_name} {message.users.last_name}
+                          {senderName}
                         </span>
                         <div className="flex items-center gap-2">
                           <span className={`text-xs ${

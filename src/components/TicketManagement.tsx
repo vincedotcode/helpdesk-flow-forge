@@ -75,12 +75,8 @@ const TicketManagement = () => {
     setAssignmentData({ assigned_to: '', status: 'in_progress' });
 
     if (user?.role === 'super_admin') {
-      if (!ticket.department_id) {
-        showErrorToast('Missing Department', 'This ticket is not linked to a department yet.');
-        setSelectedTicket(null);
-        return;
-      }
-      await fetchDepartmentTechnicians(ticket.department_id, true);
+      // Super admins can assign across all active technicians/admins.
+      await fetchDepartmentTechnicians(null, true);
     }
 
     if (user?.role === 'department_admin' && user.department_id) {

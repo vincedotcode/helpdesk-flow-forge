@@ -46,8 +46,13 @@ const NotificationBell = () => {
   return (
     <Popover open={isOpen} onOpenChange={setIsOpen}>
       <PopoverTrigger asChild>
-        <Button variant="ghost" size="sm" className="relative">
-          <Bell className="h-5 w-5" />
+        <Button
+          variant="ghost"
+          size="sm"
+          className="relative text-sidebar-foreground hover:text-sidebar-foreground hover:bg-sidebar-accent"
+          aria-label="Open notifications"
+        >
+          <Bell className="h-5 w-5 text-current" />
           {unreadCount > 0 && (
             <Badge 
               variant="destructive" 

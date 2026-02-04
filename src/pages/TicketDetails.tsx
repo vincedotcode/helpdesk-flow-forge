@@ -226,13 +226,16 @@ const TicketDetails = () => {
     }
   };
 
-  const fetchDepartmentTechnicians = async (departmentId: string, includeAdmins = false) => {
+  const fetchDepartmentTechnicians = async (departmentId?: string | null, includeAdmins = false) => {
     try {
       let query = supabase
         .from('users')
         .select('id, first_name, last_name, email, role')
-        .eq('department_id', departmentId)
         .eq('is_active', true);
+
+      if (departmentId) {
+        query = query.eq('department_id', departmentId);
+      }
 
       if (includeAdmins) {
         query = query.in('role', ['department_admin', 'department_technician']);
@@ -259,10 +262,9 @@ const TicketDetails = () => {
 
     setAssignmentData({ assigned_to: '', status: 'in_progress' });
 
-    const departmentId =
-      user.role === 'super_admin' ? ticket.department_id : user.department_id;
+    const departmentId = user.role === 'super_admin' ? null : user.department_id;
 
-    if (!departmentId) {
+    if (user.role !== 'super_admin' && !departmentId) {
       toast({
         title: "Missing Department",
         description: "This ticket is not linked to a department yet.",

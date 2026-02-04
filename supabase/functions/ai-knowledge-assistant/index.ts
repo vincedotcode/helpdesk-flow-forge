@@ -590,9 +590,11 @@ Do NOT mention the JSON block in your user-facing response.`;
         superAdmin = admin || null;
       }
 
+      // For normal AI-created tickets, keep assigned_to null so DB auto-assignment can route to a technician.
+      // For escalations, assign to super admin (fallback to department admin) immediately.
       const assignedUserId = shouldEscalate
         ? (superAdmin?.id || departmentAdmin?.id || null)
-        : (departmentAdmin?.id || null);
+        : null;
 
       if (isUpdate) {
         let targetTicket = existingTicket;
@@ -759,12 +761,13 @@ Do NOT mention the JSON block in your user-facing response.`;
           ticketIdResult = ticket.id;
 
           let assignmentText = '';
+          const hasAssignment = !!ticket.assigned_to;
           if (bestDepartment) {
             assignmentText = ` and has been routed to the ${bestDepartment.name} department`;
-            if (assignedUserId) {
+            if (hasAssignment) {
               assignmentText += ' for review';
             }
-          } else if (assignedUserId) {
+          } else if (hasAssignment) {
             assignmentText = ' and has been assigned for expedited review';
           }
 
