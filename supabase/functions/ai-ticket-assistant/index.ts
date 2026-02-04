@@ -3,7 +3,7 @@ import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
 const geminiApiKey = Deno.env.get('GEMINI_API_KEY');
-const geminiModel = Deno.env.get('GEMINI_MODEL') || 'gemini-1.0-pro';
+const geminiModel = Deno.env.get('GEMINI_MODEL') || 'gemini-1.5-flash';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -22,6 +22,13 @@ serve(async (req) => {
     }
 
     const { action, ticketContext, userMessage, conversationHistory } = await req.json();
+
+    if (!action || !ticketContext) {
+      return new Response(JSON.stringify({ error: 'Missing required fields: action, ticketContext' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
 
     let systemPrompt = '';
     let userPrompt = '';
@@ -43,9 +50,20 @@ Ticket Context:
 ${ticketContext}`;
       
       userPrompt = userMessage;
+      if (!userPrompt) {
+        return new Response(JSON.stringify({ error: 'Missing required field for chat: userMessage' }), {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+    } else {
+      return new Response(JSON.stringify({ error: 'Invalid action. Use summarize or chat.' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
 
-    const contents = [];
+    const contents: Array<{ role: string; parts: Array<{ text: string }> }> = [];
     if (action === 'chat' && conversationHistory) {
       for (const msg of conversationHistory) {
         const role = msg.role === 'assistant' ? 'model' : 'user';
@@ -54,26 +72,54 @@ ${ticketContext}`;
     }
     contents.push({ role: 'user', parts: [{ text: userPrompt }] });
 
-    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${geminiModel}:generateContent?key=${geminiApiKey}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        systemInstruction: { parts: [{ text: systemPrompt }] },
-        contents,
-        generationConfig: {
-          maxOutputTokens: 800,
-          temperature: 0.3,
-        },
-      }),
-    });
+    const callGemini = async (payload: Record<string, unknown>) => {
+      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${geminiModel}:generateContent?key=${geminiApiKey}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
 
-    let data: any = null;
-    try {
-      data = await response.json();
-    } catch {
-      data = null;
+      let data: any = null;
+      try {
+        data = await response.json();
+      } catch {
+        data = null;
+      }
+
+      return { response, data };
+    };
+
+    const basePayload: Record<string, unknown> = {
+      systemInstruction: { parts: [{ text: systemPrompt }] },
+      contents,
+      generationConfig: {
+        maxOutputTokens: 800,
+        temperature: 0.3,
+      },
+    };
+
+    let { response, data } = await callGemini(basePayload);
+
+    if (!response.ok && data?.error?.message?.includes('systemInstruction')) {
+      const fallbackPayload = {
+        ...basePayload,
+        system_instruction: basePayload.systemInstruction,
+      } as Record<string, unknown>;
+      delete (fallbackPayload as any).systemInstruction;
+      const fallback = await callGemini(fallbackPayload);
+      response = fallback.response;
+      data = fallback.data;
     }
-    
+
+    if (!response.ok && response.status === 429) {
+      return new Response(JSON.stringify({
+        error: 'Assistant is temporarily rate limited. Please retry shortly.',
+      }), {
+        status: 429,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
     if (!response.ok) {
       throw new Error(`Gemini API error (${response.status}): ${JSON.stringify(data)}`);
     }

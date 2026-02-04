@@ -40,11 +40,17 @@ const TicketAIAssistant: React.FC<TicketAIAssistantProps> = ({ ticket }) => {
   const [hasGeneratedSummary, setHasGeneratedSummary] = useState(false);
 
   useEffect(() => {
+    setMessages([]);
+    setUserMessage('');
+    setHasGeneratedSummary(false);
+  }, [ticket.id]);
+
+  useEffect(() => {
     // Generate initial summary when component mounts
     if (!hasGeneratedSummary) {
       generateTicketSummary();
     }
-  }, [ticket.id, hasGeneratedSummary]);
+  }, [hasGeneratedSummary]);
 
   const generateTicketSummary = async () => {
     setIsLoading(true);
@@ -75,6 +81,9 @@ const TicketAIAssistant: React.FC<TicketAIAssistantProps> = ({ ticket }) => {
       });
 
       if (error) throw error;
+      if (!data?.response) {
+        throw new Error(data?.error || 'Assistant returned an empty response');
+      }
 
       const summaryMessage: ChatMessage = {
         id: Date.now().toString(),
@@ -145,6 +154,9 @@ const TicketAIAssistant: React.FC<TicketAIAssistantProps> = ({ ticket }) => {
       });
 
       if (error) throw error;
+      if (!data?.response) {
+        throw new Error(data?.error || 'Assistant returned an empty response');
+      }
 
       const assistantMessage: ChatMessage = {
         id: (Date.now() + 1).toString(),
