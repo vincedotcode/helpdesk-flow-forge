@@ -31,12 +31,18 @@ export const useTicketPermissions = () => {
   };
 
   const showChatButton = (ticket: Ticket) => {
-    return ticket.assigned_to && (
-      user?.id === ticket.assigned_to?.id ||
-      user?.id === ticket.created_by?.id ||
-      user?.role === 'department_admin' ||
-      user?.role === 'super_admin'
-    );
+    if (!user) return false;
+    const isCreator = !!ticket.created_by?.id && user.id === ticket.created_by.id;
+    const isAssignee = !!ticket.assigned_to?.id && user.id === ticket.assigned_to.id;
+
+    if (user.role === 'super_admin') return true;
+    if (user.role === 'department_admin') {
+      return isDepartmentScoped(ticket) || isCreator || isAssignee;
+    }
+    if (user.role === 'department_technician') {
+      return isAssignee;
+    }
+    return isCreator;
   };
 
   return {

@@ -38,6 +38,7 @@ const TicketChat: React.FC<TicketChatProps> = ({ ticketId, ticketTitle }) => {
   const [loading, setLoading] = useState(false);
   const [sending, setSending] = useState(false);
   const [deletingMessageId, setDeletingMessageId] = useState<string | null>(null);
+  const [deletingChat, setDeletingChat] = useState(false);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const notifiedMessagesRef = useRef<Set<string>>(new Set());
   const skipInitialNotificationRef = useRef(true);
@@ -67,10 +68,16 @@ const TicketChat: React.FC<TicketChatProps> = ({ ticketId, ticketTitle }) => {
     };
   }, [ticketId]);
 
+  const getScrollViewport = () => {
+    if (!scrollAreaRef.current) return null;
+    return scrollAreaRef.current.querySelector('[data-radix-scroll-area-viewport]') as HTMLDivElement | null;
+  };
+
   useEffect(() => {
     // Scroll to bottom when new messages arrive
-    if (scrollAreaRef.current) {
-      scrollAreaRef.current.scrollTop = scrollAreaRef.current.scrollHeight;
+    const viewport = getScrollViewport();
+    if (viewport) {
+      viewport.scrollTop = viewport.scrollHeight;
     }
   }, [messages]);
 
@@ -217,6 +224,39 @@ const TicketChat: React.FC<TicketChatProps> = ({ ticketId, ticketTitle }) => {
     }
   };
 
+  const handleDeleteChat = async () => {
+    if (!user) return;
+    if (typeof window !== 'undefined' && !window.confirm('Delete the entire chat history for this ticket? This cannot be undone.')) {
+      return;
+    }
+
+    setDeletingChat(true);
+    try {
+      const { error } = await supabase.rpc('delete_ticket_chat', {
+        p_ticket_id: ticketId
+      });
+      if (error) throw error;
+
+      setMessages([]);
+      notifiedMessagesRef.current = new Set();
+      skipInitialNotificationRef.current = true;
+
+      toast({
+        title: "Chat cleared",
+        description: "All chat messages for this ticket were deleted.",
+      });
+    } catch (error) {
+      console.error('Error deleting chat:', error);
+      toast({
+        title: "Error",
+        description: "Failed to delete chat history.",
+        variant: "destructive",
+      });
+    } finally {
+      setDeletingChat(false);
+    }
+  };
+
   const formatTime = (timestamp: string) => {
     return new Date(timestamp).toLocaleString();
   };
@@ -233,13 +273,24 @@ const TicketChat: React.FC<TicketChatProps> = ({ ticketId, ticketTitle }) => {
   return (
     <Card className="h-96 flex flex-col">
       <CardHeader className="pb-3">
-        <CardTitle className="text-lg">Chat - {ticketTitle}</CardTitle>
+        <div className="flex items-center justify-between gap-3">
+          <CardTitle className="text-lg">Chat - {ticketTitle}</CardTitle>
+          {user && (
+            <Button
+              variant="destructive"
+              size="sm"
+              onClick={handleDeleteChat}
+              disabled={deletingChat}
+            >
+              {deletingChat ? 'Deleting...' : 'Delete chat'}
+            </Button>
+          )}
+        </div>
       </CardHeader>
-      <CardContent className="flex-1 flex flex-col p-0">
-      <ScrollArea
-          className="flex-1 px-4 max-h-[26rem]"
+      <CardContent className="flex-1 flex flex-col p-0 min-h-0">
+        <ScrollArea
+          className="flex-1 px-4 min-h-0"
           ref={scrollAreaRef}
-          style={{ minHeight: 0 }}
         >
           {loading ? (
             <div className="flex justify-center py-4">

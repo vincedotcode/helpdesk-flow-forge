@@ -4,12 +4,12 @@ import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
-import { Ticket, DepartmentUser, TicketStatus } from '@/types/ticket';
+import { DepartmentUser, TicketStatus } from '@/types/ticket';
 
 interface TicketAssignmentDialogProps {
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
-  selectedTicket: Ticket | null;
+  selectedTicket: { id: string; title: string } | null;
   departmentTechnicians: DepartmentUser[];
   assignmentData: {
     assigned_to: string;

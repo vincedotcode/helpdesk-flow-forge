@@ -1,9 +1,10 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/components/ui/use-toast';
 import { Notification } from '@/types/ticket';
+import { playNotificationTone } from '@/utils/notificationSound';
 
 export const useNotifications = () => {
   const { user } = useAuth();
@@ -11,6 +12,7 @@ export const useNotifications = () => {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [loading, setLoading] = useState(false);
+  const seenNotificationIds = useRef<Set<string>>(new Set());
 
   const fetchNotifications = async () => {
     if (!user?.id) return;
@@ -25,8 +27,12 @@ export const useNotifications = () => {
 
       if (error) throw error;
 
-      setNotifications(data || []);
-      setUnreadCount(data?.filter(n => !n.is_read).length || 0);
+      const safeData = data || [];
+      safeData.forEach((notification) => {
+        seenNotificationIds.current.add(notification.id);
+      });
+      setNotifications(safeData);
+      setUnreadCount(safeData.filter(n => !n.is_read).length || 0);
     } catch (error) {
       console.error('Error fetching notifications:', error);
       toast({
@@ -87,8 +93,74 @@ export const useNotifications = () => {
   };
 
   useEffect(() => {
+    if (!user?.id) {
+      seenNotificationIds.current = new Set();
+      setNotifications([]);
+      setUnreadCount(0);
+      return;
+    }
+
+    seenNotificationIds.current = new Set();
+
     fetchNotifications();
-  }, [user?.id]);
+
+    const channel = supabase
+      .channel(`notifications-${user.id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'notifications',
+          filter: `user_id=eq.${user.id}`
+        },
+        (payload) => {
+          const newNotification = payload.new as Notification;
+          if (seenNotificationIds.current.has(newNotification.id)) return;
+
+          seenNotificationIds.current.add(newNotification.id);
+          setNotifications((prev) => {
+            if (prev.some((n) => n.id === newNotification.id)) {
+              return prev;
+            }
+            return [newNotification, ...prev];
+          });
+          if (!newNotification.is_read) {
+            setUnreadCount((prev) => prev + 1);
+          }
+
+          if (['ticket_chat_message', 'ticket_assigned'].includes(newNotification.type)) {
+            playNotificationTone();
+            toast({
+              title: newNotification.title || 'New notification',
+              description: newNotification.message,
+            });
+          }
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'notifications',
+          filter: `user_id=eq.${user.id}`
+        },
+        (payload) => {
+          const updatedNotification = payload.new as Notification;
+          setNotifications((prev) => {
+            const next = prev.map((n) => (n.id === updatedNotification.id ? updatedNotification : n));
+            setUnreadCount(next.filter((n) => !n.is_read).length);
+            return next;
+          });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [toast, user?.id]);
 
   return {
     notifications,

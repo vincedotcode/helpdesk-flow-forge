@@ -11,7 +11,9 @@ import { useToast } from '@/components/ui/use-toast';
 import { ArrowLeft } from 'lucide-react';
 import EnhancedTicketView from '@/components/EnhancedTicketView';
 import TicketAIAssistant from '@/components/TicketAIAssistant';
+import TicketAssignmentDialog from '@/components/TicketAssignmentDialog';
 import { exportCostingReport } from '@/utils/costingReport';
+import { DepartmentUser, TicketStatus } from '@/types/ticket';
 
 interface EnhancedTicket {
   id: string;
@@ -60,6 +62,13 @@ const TicketDetails = () => {
   const [accessDenied, setAccessDenied] = useState(false);
   const [externalSupplierDescription, setExternalSupplierDescription] = useState('');
   const [externalSupplierCost, setExternalSupplierCost] = useState('');
+  const [isAssignDialogOpen, setIsAssignDialogOpen] = useState(false);
+  const [assignmentLoading, setAssignmentLoading] = useState(false);
+  const [departmentTechnicians, setDepartmentTechnicians] = useState<DepartmentUser[]>([]);
+  const [assignmentData, setAssignmentData] = useState({
+    assigned_to: '',
+    status: 'in_progress' as TicketStatus
+  });
 
   useEffect(() => {
     if (id) {
@@ -217,10 +226,105 @@ const TicketDetails = () => {
     }
   };
 
+  const fetchDepartmentTechnicians = async (departmentId: string, includeAdmins = false) => {
+    try {
+      let query = supabase
+        .from('users')
+        .select('id, first_name, last_name, email, role')
+        .eq('department_id', departmentId)
+        .eq('is_active', true);
+
+      if (includeAdmins) {
+        query = query.in('role', ['department_admin', 'department_technician']);
+      } else {
+        query = query.eq('role', 'department_technician');
+      }
+
+      const { data, error } = await query;
+
+      if (error) throw error;
+      setDepartmentTechnicians(data || []);
+    } catch (error) {
+      console.error('Error fetching department technicians:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load department technicians",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const openAssignDialog = async () => {
+    if (!ticket || !user) return;
+
+    setAssignmentData({ assigned_to: '', status: 'in_progress' });
+
+    const departmentId =
+      user.role === 'super_admin' ? ticket.department_id : user.department_id;
+
+    if (!departmentId) {
+      toast({
+        title: "Missing Department",
+        description: "This ticket is not linked to a department yet.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    await fetchDepartmentTechnicians(departmentId, user.role === 'super_admin');
+    setIsAssignDialogOpen(true);
+  };
+
+  const handleAssignTicket = async () => {
+    if (!ticket || !assignmentData.assigned_to) {
+      toast({
+        title: "Validation Error",
+        description: "Please select a technician to assign",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setAssignmentLoading(true);
+
+    try {
+      const { error } = await supabase
+        .from('tickets')
+        .update({
+          assigned_to: assignmentData.assigned_to,
+          status: assignmentData.status
+        })
+        .eq('id', ticket.id);
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: "Ticket assignment updated",
+      });
+
+      setIsAssignDialogOpen(false);
+      setAssignmentData({ assigned_to: '', status: 'in_progress' });
+      fetchTicket();
+    } catch (error) {
+      console.error('Error assigning ticket:', error);
+      toast({
+        title: "Error",
+        description: "Failed to assign ticket. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setAssignmentLoading(false);
+    }
+  };
+
   const canAssignTicket = (ticket: EnhancedTicket) => {
     if (user?.role === 'super_admin') return true;
-    return user?.role === 'department_admin' && 
-           (!ticket.assigned_to || ticket.assigned_to.role === 'department_admin');
+    return (
+      user?.role === 'department_admin' &&
+      !!user.department_id &&
+      ticket.department_id === user.department_id
+    );
   };
 
   const canUpdateStatus = (ticket: EnhancedTicket) => {
@@ -229,11 +333,18 @@ const TicketDetails = () => {
   };
 
   const showChatButton = (ticket: EnhancedTicket) => {
-    return ticket.assigned_to && (
-      user?.role === 'department_technician' ||
-      user?.role === 'department_admin' ||
-      user?.role === 'super_admin'
-    );
+    if (!user) return false;
+    const isCreator = user.id === ticket.created_by.id;
+    const isAssignee = user.id === ticket.assigned_to?.id;
+
+    if (user.role === 'super_admin') return true;
+    if (user.role === 'department_admin') {
+      return isCreator || isAssignee || ticket.department_id === user.department_id;
+    }
+    if (user.role === 'department_technician') {
+      return isAssignee;
+    }
+    return isCreator;
   };
 
   const showAIAssistant = () => {
@@ -306,6 +417,7 @@ const TicketDetails = () => {
             canAssign={canAssignTicket(ticket)}
             canUpdateStatus={canUpdateStatus(ticket)}
             showChatButton={showChatButton(ticket)}
+            onAssign={openAssignDialog}
           />
           {ticket.status === 'in_progress' && (
             <Card className="mt-4">
@@ -379,6 +491,17 @@ const TicketDetails = () => {
           </div>
         )}
       </div>
+
+      <TicketAssignmentDialog
+        isOpen={isAssignDialogOpen}
+        onOpenChange={setIsAssignDialogOpen}
+        selectedTicket={ticket}
+        departmentTechnicians={departmentTechnicians}
+        assignmentData={assignmentData}
+        onAssignmentDataChange={setAssignmentData}
+        onAssign={handleAssignTicket}
+        loading={assignmentLoading}
+      />
     </div>
   );
 };
