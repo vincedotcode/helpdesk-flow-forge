@@ -18,7 +18,7 @@ const cookieUtils = {
 export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
   global: {
     headers: {
-      get authorization() {
+      get ['x-session-token']() {
         const token = cookieUtils.get('auth_token');
         return token || '';
       }

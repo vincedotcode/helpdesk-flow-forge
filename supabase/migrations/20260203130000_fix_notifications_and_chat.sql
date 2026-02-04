@@ -1,6 +1,16 @@
 -- Update notifications RLS to use custom session lookup
 ALTER TABLE public.notifications ENABLE ROW LEVEL SECURITY;
 
+-- Ensure authenticated sessions can insert notifications (including trigger-based inserts)
+DROP POLICY IF EXISTS "Authenticated users can insert notifications" ON public.notifications;
+CREATE POLICY "Authenticated users can insert notifications"
+  ON public.notifications
+  FOR INSERT
+  WITH CHECK (
+    public.get_current_user_from_session() IS NOT NULL
+    OR auth.uid() IS NOT NULL
+  );
+
 DROP POLICY IF EXISTS "Users can view their own notifications" ON public.notifications;
 CREATE POLICY "Users can view their own notifications" 
   ON public.notifications 
@@ -53,7 +63,9 @@ BEGIN
 
   RETURN NEW;
 END;
-$$ LANGUAGE plpgsql;
+$$ LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public;
 
 -- Allow read receipt updates to bypass RLS while validating session ownership
 CREATE OR REPLACE FUNCTION public.mark_ticket_chat_messages_read(p_ticket_id uuid, p_user_id uuid)
