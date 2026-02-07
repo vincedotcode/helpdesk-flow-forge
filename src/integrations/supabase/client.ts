@@ -19,12 +19,10 @@ const sessionAwareFetch: typeof fetch = async (input, init = {}) => {
   const token = cookieUtils.get('auth_token');
 
   if (token) {
-    // Send both headers to support old and new DB session lookup functions.
+    // Custom session lookup reads this header in Postgres.
     headers.set('x-session-token', token);
-    headers.set('authorization', `Bearer ${token}`);
   } else {
     headers.delete('x-session-token');
-    headers.delete('authorization');
   }
 
   return fetch(input, {
