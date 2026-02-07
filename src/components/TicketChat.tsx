@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -25,6 +25,17 @@ interface ChatMessage {
   read_by: string[];
 }
 
+interface ChatMessageRow {
+  id: string;
+  message: string;
+  message_type?: string | null;
+  attachment_url?: string | null;
+  created_at?: string | null;
+  user_id: string;
+  users?: ChatMessage['users'] | ChatMessage['users'][] | null;
+  read_by?: string[] | null;
+}
+
 interface TicketChatProps {
   ticketId: string;
   ticketTitle: string;
@@ -37,12 +48,98 @@ const TicketChat: React.FC<TicketChatProps> = ({ ticketId, ticketTitle }) => {
   const [newMessage, setNewMessage] = useState('');
   const [loading, setLoading] = useState(false);
   const [sending, setSending] = useState(false);
+  const [supportsReadReceipts, setSupportsReadReceipts] = useState(true);
   const [deletingMessageId, setDeletingMessageId] = useState<string | null>(null);
   const [deletingChat, setDeletingChat] = useState(false);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const notifiedMessagesRef = useRef<Set<string>>(new Set());
   const skipInitialNotificationRef = useRef(true);
   const instanceIdRef = useRef<string>(Math.random().toString(36).slice(2));
+
+  const normalizeMessage = useCallback((message: ChatMessageRow): ChatMessage => {
+    const relationUser = Array.isArray(message.users) ? message.users[0] : message.users;
+    const normalizedUser = relationUser && typeof relationUser === 'object'
+      ? {
+          first_name: relationUser.first_name,
+          last_name: relationUser.last_name,
+          role: relationUser.role,
+        }
+      : undefined;
+    const fallbackCurrentUser = message.user_id === user?.id && user
+      ? {
+          first_name: user.first_name,
+          last_name: user.last_name,
+          role: user.role,
+        }
+      : undefined;
+
+    return {
+      id: message.id,
+      message: message.message,
+      message_type: message.message_type || 'text',
+      attachment_url: message.attachment_url || undefined,
+      created_at: message.created_at || new Date().toISOString(),
+      user_id: message.user_id,
+      users: normalizedUser || fallbackCurrentUser,
+      read_by: Array.isArray(message.read_by) ? message.read_by : [],
+    };
+  }, [user]);
+
+  const fetchMessages = useCallback(async () => {
+    setLoading(true);
+    try {
+      const { data: enhancedData, error: enhancedError } = await supabase
+        .from('ticket_chat_messages')
+        .select(`
+          id,
+          message,
+          message_type,
+          attachment_url,
+          created_at,
+          user_id,
+          read_by,
+          users:user_id(first_name, last_name, role)
+        `)
+        .eq('ticket_id', ticketId)
+        .order('created_at', { ascending: true });
+
+      if (!enhancedError) {
+        setSupportsReadReceipts(true);
+        setMessages(((enhancedData || []) as ChatMessageRow[]).map(normalizeMessage));
+        return;
+      }
+
+      // Fall back when read-receipt/user relation fields are missing in the active DB schema.
+      console.warn('Enhanced chat fetch failed, retrying with base fields:', enhancedError);
+      const { data: fallbackData, error: fallbackError } = await supabase
+        .from('ticket_chat_messages')
+        .select(`
+          id,
+          message,
+          message_type,
+          attachment_url,
+          created_at,
+          user_id
+        `)
+        .eq('ticket_id', ticketId)
+        .order('created_at', { ascending: true });
+
+      if (fallbackError) throw fallbackError;
+
+      setSupportsReadReceipts(false);
+      setMessages(((fallbackData || []) as ChatMessageRow[]).map(normalizeMessage));
+    } catch (error) {
+      console.error('Error fetching messages:', error);
+      setSupportsReadReceipts(false);
+      toast({
+        title: "Error",
+        description: "Failed to load chat messages",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  }, [normalizeMessage, ticketId, toast]);
 
   useEffect(() => {
     fetchMessages();
@@ -67,7 +164,7 @@ const TicketChat: React.FC<TicketChatProps> = ({ ticketId, ticketTitle }) => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [ticketId]);
+  }, [fetchMessages, ticketId]);
 
   const getScrollViewport = () => {
     if (!scrollAreaRef.current) return null;
@@ -113,7 +210,7 @@ const TicketChat: React.FC<TicketChatProps> = ({ ticketId, ticketTitle }) => {
   }, [messages, ticketTitle, toast, user?.id]);
 
   useEffect(() => {
-    if (!ticketId || !user?.id || !messages.length) return;
+    if (!supportsReadReceipts || !ticketId || !user?.id || !messages.length) return;
 
     const markRead = async () => {
       const { error } = await supabase.rpc('mark_ticket_chat_messages_read', {
@@ -126,39 +223,7 @@ const TicketChat: React.FC<TicketChatProps> = ({ ticketId, ticketTitle }) => {
     };
 
     markRead();
-  }, [messages, ticketId, user?.id]);
-
-  const fetchMessages = async () => {
-    setLoading(true);
-    try {
-      const { data, error } = await supabase
-        .from('ticket_chat_messages')
-        .select(`
-          id,
-          message,
-          message_type,
-          attachment_url,
-          created_at,
-          user_id,
-          read_by,
-          users:user_id(first_name, last_name, role)
-        `)
-        .eq('ticket_id', ticketId)
-        .order('created_at', { ascending: true });
-
-      if (error) throw error;
-      setMessages(data || []);
-    } catch (error) {
-      console.error('Error fetching messages:', error);
-      toast({
-        title: "Error",
-        description: "Failed to load chat messages",
-        variant: "destructive",
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
+  }, [messages, supportsReadReceipts, ticketId, user?.id]);
 
   const sendMessage = async () => {
     if (!newMessage.trim() || !user?.id) return;
@@ -177,6 +242,7 @@ const TicketChat: React.FC<TicketChatProps> = ({ ticketId, ticketTitle }) => {
       if (error) throw error;
 
       setNewMessage('');
+      await fetchMessages();
     } catch (error) {
       console.error('Error sending message:', error);
       toast({
@@ -305,8 +371,9 @@ const TicketChat: React.FC<TicketChatProps> = ({ ticketId, ticketTitle }) => {
           ) : (
             <div className="space-y-3 py-2">
             {messages.map((message) => {
-              const otherReaders = message.read_by.filter((id) => id !== message.user_id);
-              const hasReadByCurrentUser = user?.id ? message.read_by.includes(user.id) : false;
+              const readBy = Array.isArray(message.read_by) ? message.read_by : [];
+              const otherReaders = readBy.filter((id) => id !== message.user_id);
+              const hasReadByCurrentUser = user?.id ? readBy.includes(user.id) : false;
               const isDeletingThisMessage = deletingMessageId === message.id;
               const canDeleteMessage = !!user && (
                 message.user_id === user.id ||
@@ -370,7 +437,7 @@ const TicketChat: React.FC<TicketChatProps> = ({ ticketId, ticketTitle }) => {
                           </a>
                         </div>
                       )}
-                    {message.read_by && (
+                    {supportsReadReceipts && (
                         <>
                           {message.user_id === user?.id && otherReaders.length > 0 && (
                             <div className="mt-1 flex items-center gap-1 text-[11px] text-muted-foreground">

@@ -14,22 +14,35 @@ const cookieUtils = {
   }
 };
 
-// Create supabase client with custom auth header that gets token dynamically
+const sessionAwareFetch: typeof fetch = async (input, init = {}) => {
+  const headers = new Headers(init.headers);
+  const token = cookieUtils.get('auth_token');
+
+  if (token) {
+    // Send both headers to support old and new DB session lookup functions.
+    headers.set('x-session-token', token);
+    headers.set('authorization', `Bearer ${token}`);
+  } else {
+    headers.delete('x-session-token');
+    headers.delete('authorization');
+  }
+
+  return fetch(input, {
+    ...init,
+    headers
+  });
+};
+
+// Create supabase client with request-time session header injection.
 export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
   global: {
-    headers: {
-      get ['x-session-token']() {
-        const token = cookieUtils.get('auth_token');
-        return token || '';
-      }
-    }
+    fetch: sessionAwareFetch
   }
 });
 
 // Function to set authorization header for requests
 export const setAuthToken = (token: string | null) => {
   if (token) {
-    // Store in localStorage for the dynamic header getter
     localStorage.setItem('cookie_auth_token', token);
   } else {
     localStorage.removeItem('cookie_auth_token');
