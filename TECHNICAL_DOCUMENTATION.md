@@ -57,7 +57,7 @@ Key files:
 ## Edge Functions
 Located in `supabase/functions/`:
 - `ai-knowledge-assistant`: ticket intake assistant (no troubleshooting)
-- `ai-ticket-assistant`: triage summarization and missing details
+- `ai-ticket-assistant`: triage summarization, missing details, and troubleshooting steps
 - `authenticate-user`: login RPC proxy
 - `register-user`: signup RPC proxy
 - `create-user-by-admin`: admin user creation

@@ -190,7 +190,7 @@ const TicketAIAssistant: React.FC<TicketAIAssistantProps> = ({ ticket }) => {
       <CardHeader className="pb-3">
         <CardTitle className="flex items-center space-x-2">
           <Bot className="w-5 h-5 text-blue-600" />
-          <span>Ticket Triage Assistant</span>
+          <span>Ticket Triage & Troubleshooting Assistant</span>
           <Button
             variant="ghost"
             size="sm"
@@ -208,7 +208,7 @@ const TicketAIAssistant: React.FC<TicketAIAssistantProps> = ({ ticket }) => {
             {messages.length === 0 && !isLoading && (
               <div className="text-center text-gray-500 py-8">
                 <Bot className="w-8 h-8 mx-auto mb-2 text-gray-400" />
-                <p>AI assistant will summarize the ticket and highlight missing details.</p>
+                <p>AI assistant will summarize the ticket, highlight missing details, and provide troubleshooting steps.</p>
               </div>
             )}
             
@@ -253,7 +253,7 @@ const TicketAIAssistant: React.FC<TicketAIAssistantProps> = ({ ticket }) => {
               value={userMessage}
               onChange={(e) => setUserMessage(e.target.value)}
               onKeyPress={handleKeyPress}
-              placeholder="Ask for a summary or missing details..."
+              placeholder="Ask for a summary, missing details, or troubleshooting steps..."
               disabled={isLoading}
               className="flex-1 min-h-[40px] max-h-[100px]"
               rows={1}

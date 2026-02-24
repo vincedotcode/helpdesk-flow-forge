@@ -35,8 +35,8 @@ Helpdesk Flow Forge is a role-based helpdesk platform that lets users submit sup
 - Announcements to all users or a specific role/department
 
 ### AI Ticket Assistant (Optional)
-- Collects information to create or update tickets
-- Does not provide troubleshooting steps or solutions
+- Summarizes ticket context and highlights missing details
+- Provides troubleshooting steps and operational next actions
 
 ## Quick Start (Local)
 1. Install dependencies:
@@ -58,4 +58,3 @@ Use `supabase/seed.sql` to populate demo data. **Warning:** running it will wipe
 ## Notes
 - Navigation uses `/dashboard/*` routes with tab-based sections.
 - Permissions are enforced in the UI and supported by Supabase policies.
-

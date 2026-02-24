@@ -36,8 +36,8 @@ The application uses four roles:
 - **User Management** (super_admin/department_admin): Create users, edit roles and departments, deactivate users.
 - **Broadcasts**: Targeted announcements by role or department.
 - **Knowledge Base** (super_admin): Manage articles.
-- **AI Ticket Assistant**: Ticket intake that gathers details and creates tickets (no troubleshooting guidance).
-- **AI Ticket Triage**: Summarizes ticket details and highlights missing information.
+- **AI Ticket Intake Assistant**: Gathers details to create tickets (intake flow, no troubleshooting guidance).
+- **AI Ticket Triage Assistant**: Summarizes ticket details, highlights missing information, and provides troubleshooting steps.
 
 ## Frontend Structure
 - `src/pages/`
